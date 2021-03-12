@@ -1,0 +1,9 @@
+.idea/
+*.iml
+
+classes/
+
+*.md
+*.stat
+*.tbl
+*.txt
