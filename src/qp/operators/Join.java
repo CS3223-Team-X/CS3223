@@ -8,36 +8,38 @@ import qp.utils.Condition;
 import qp.utils.Schema;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Join extends Operator {
+    protected static int CURSOR_START = 0;
 
-    Operator left;                       // Left child
-    Operator right;                      // Right child
-    ArrayList<Condition> conditionList;  // List of join conditions
-    int numBuff;                         // Number of buffers available
-    int jointype;                        // JoinType.NestedJoin/SortMerge/HashJoin
-    int nodeIndex;                       // Each join node is given a number
+    protected Operator left;                       // Left child
+    protected Operator right;                      // Right child
+    protected List<Condition> joinConditions;  // List of join conditions
+    protected int numBuff;                         // Number of buffers available
+    protected int joinType;                        // JoinType.NestedJoin/SortMerge/HashJoin
+    protected int nodeIndex;                       // Each join node is given a number
 
     public Join(Operator left, Operator right, int type) {
         super(type);
         this.left = left;
         this.right = right;
-        conditionList = new ArrayList<>();
+        joinConditions = new ArrayList<>();
     }
 
     public Join(Operator left, Operator right, Condition condition, int type) {
         super(type);
         this.left = left;
         this.right = right;
-        conditionList = new ArrayList<>();
-        conditionList.add(condition);
+        joinConditions = new ArrayList<>();
+        joinConditions.add(condition);
     }
 
-    public Join(Operator left, Operator right, ArrayList<Condition> conditionList, int type) {
+    public Join(Operator left, Operator right, List<Condition> joinConditions, int type) {
         super(type);
         this.left = left;
         this.right = right;
-        this.conditionList = conditionList;
+        this.joinConditions = joinConditions;
     }
 
     public int getNumBuff() {
@@ -57,11 +59,11 @@ public class Join extends Operator {
     }
 
     public int getJoinType() {
-        return jointype;
+        return joinType;
     }
 
     public void setJoinType(int type) {
-        this.jointype = type;
+        this.joinType = type;
     }
 
     public Operator getLeft() {
@@ -81,41 +83,42 @@ public class Join extends Operator {
     }
 
     public Condition getCondition() {
-        assert (conditionList.size() > 0);
-        return conditionList.get(0);
+        assert (joinConditions.size() > 0);
+        return joinConditions.get(0);
     }
 
     public void setCondition(Condition condition) {
-        conditionList = new ArrayList<>();
-        conditionList.add(condition);
+        joinConditions = new ArrayList<>();
+        joinConditions.add(condition);
     }
 
-    public ArrayList<Condition> getConditionList() {
-        return conditionList;
+    public List<Condition> getJoinConditions() {
+        return joinConditions;
     }
 
-    public void setConditionList(ArrayList<Condition> conditionList) {
-        this.conditionList = conditionList;
+    public void setJoinConditions(ArrayList<Condition> joinConditions) {
+        this.joinConditions = joinConditions;
     }
 
     public void addCondition(Condition condition) {
-        conditionList.add(condition);
+        joinConditions.add(condition);
     }
 
     public Object clone() {
-        Operator newleft = (Operator) left.clone();
-        Operator newright = (Operator) right.clone();
-        ArrayList<Condition> newcondlist = new ArrayList<>();
-        for (Condition cond : conditionList) {
-            newcondlist.add((Condition) cond.clone());
+        Operator newLeft = (Operator) left.clone();
+        Operator newRight = (Operator) right.clone();
+        List<Condition> newJoinConditions = new ArrayList<>();
+        for (Condition joinCondition : joinConditions) {
+            newJoinConditions.add((Condition) joinCondition.clone());
         }
-        Join jn = new Join(newleft, newright, newcondlist, optype);
-        Schema newsche = newleft.getSchema().joinWith(newright.getSchema());
-        jn.setSchema(newsche);
-        jn.setJoinType(jointype);
-        jn.setNodeIndex(nodeIndex);
-        jn.setNumBuff(numBuff);
-        return jn;
-    }
 
+        Join newJoin = new Join(newLeft, newRight, newJoinConditions, optype);
+        Schema newSchema = newLeft.getSchema().joinWith(newRight.getSchema());
+        newJoin.setSchema(newSchema);
+        newJoin.setJoinType(joinType);
+        newJoin.setNodeIndex(nodeIndex);
+        newJoin.setNumBuff(numBuff);
+
+        return newJoin;
+    }
 }

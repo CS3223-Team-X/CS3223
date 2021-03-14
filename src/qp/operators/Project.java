@@ -93,7 +93,7 @@ public class Project extends Operator {
         }
 
         for (int i = 0; i < inbatch.size(); i++) {
-            Tuple basetuple = inbatch.get(i);
+            Tuple basetuple = inbatch.getRecord(i);
             //Debug.PPrint(basetuple);
             //System.out.println();
             ArrayList<Object> present = new ArrayList<>();
@@ -102,7 +102,7 @@ public class Project extends Operator {
                 present.add(data);
             }
             Tuple outtuple = new Tuple(present);
-            outbatch.add(outtuple);
+            outbatch.addRecord(outtuple);
         }
         return outbatch;
     }

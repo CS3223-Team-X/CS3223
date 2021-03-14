@@ -95,12 +95,12 @@ public class Select extends Operator {
              ** or the output buffer is full
              **/
             for (i = start; i < inbatch.size() && (!outbatch.isFull()); ++i) {
-                Tuple present = inbatch.get(i);
+                Tuple present = inbatch.getRecord(i);
                 /** If the condition is satisfied then
                  ** this tuple is added tot he output buffer
                  **/
                 if (checkCondition(present))
-                    outbatch.add(present);
+                    outbatch.addRecord(present);
             }
 
             /** Modify the cursor to the position requierd

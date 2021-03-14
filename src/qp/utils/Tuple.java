@@ -46,9 +46,10 @@ public class Tuple implements Serializable {
      * Checks whether the join condition is satisfied or not with multiple conditions
      * * before performing actual join operation
      **/
-    public boolean checkJoin(Tuple right, ArrayList<Integer> leftindex, ArrayList<Integer> rightindex) {
-        if (leftindex.size() != rightindex.size())
+    public boolean checkJoin(Tuple right, List<Integer> leftindex, List<Integer> rightindex) {
+        if (leftindex.size() != rightindex.size()) {
             return false;
+        }
         for (int i = 0; i < leftindex.size(); ++i) {
             Object leftData = dataAt(leftindex.get(i));
             Object rightData = right.dataAt(rightindex.get(i));

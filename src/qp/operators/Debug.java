@@ -144,7 +144,7 @@ public class Debug {
      **/
     public static void PPrint(Batch b) {
         for (int i = 0; i < b.size(); i++) {
-            PPrint(b.get(i));
+            PPrint(b.getRecord(i));
             System.out.println();
         }
     }

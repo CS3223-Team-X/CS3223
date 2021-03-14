@@ -116,7 +116,7 @@ public class PlanCost {
         long rightpages = (long) Math.ceil(((double) righttuples) / (double) rightcapacity);
 
         double tuples = (double) lefttuples * righttuples;
-        for (Condition con : node.getConditionList()) {
+        for (Condition con : node.getJoinConditions()) {
             Attribute leftjoinAttr = con.getLhs();
             Attribute rightjoinAttr = (Attribute) con.getRhs();
             int leftattrind = leftschema.indexOf(leftjoinAttr);

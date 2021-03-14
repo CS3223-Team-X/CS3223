@@ -67,7 +67,7 @@ public class Scan extends Operator {
         while (!tuples.isFull()) {
             try {
                 Tuple data = (Tuple) in.readObject();
-                tuples.add(data);
+                tuples.addRecord(data);
             } catch (ClassNotFoundException cnf) {
                 System.err.println("Scan:Class not found for reading file  " + filename);
                 System.exit(1);
