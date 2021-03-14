@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Represents the Page Nested Join algorithm.
  */
-public class NestedJoin extends Join {
+public class PageNestedJoin extends Join {
     private static int uniqueFileNumber = 0;         // To get unique filenum for this operation
     private int batchSize;                  // Number of tuples per out batch
 
@@ -30,7 +30,7 @@ public class NestedJoin extends Join {
     boolean isLeftEndOfStream;                   // Whether end of stream (left table) is reached
     boolean isEndOfStreamForRight;                   // Whether end of stream (right table) is reached
 
-    public NestedJoin(Join jn) {
+    public PageNestedJoin(Join jn) {
         super(jn.getLeft(), jn.getRight(), jn.getJoinConditions(), jn.getOpType());
         schema = jn.getSchema();
         joinType = jn.getJoinType();
@@ -50,9 +50,9 @@ public class NestedJoin extends Join {
         /** find indices attributes of join conditions **/
         leftIndices = new ArrayList<>();
         rightIndices = new ArrayList<>();
-        for (Condition con : joinConditions) {
-            Attribute leftAttribute = con.getLhs();
-            Attribute rightAttribute = (Attribute) con.getRhs();
+        for (Condition joinCondition : joinConditions) {
+            Attribute leftAttribute = joinCondition.getLhs();
+            Attribute rightAttribute = (Attribute) joinCondition.getRhs();
             leftIndices.add(left.getSchema().indexOf(leftAttribute));
             rightIndices.add(right.getSchema().indexOf(rightAttribute));
         }

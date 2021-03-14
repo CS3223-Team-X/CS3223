@@ -121,7 +121,7 @@ public class Project extends Operator {
         ArrayList<Attribute> newattr = new ArrayList<>();
         for (int i = 0; i < attrset.size(); ++i)
             newattr.add((Attribute) attrset.get(i).clone());
-        Project newproj = new Project(newbase, newattr, optype);
+        Project newproj = new Project(newbase, newattr, opType);
         Schema newSchema = newbase.getSchema().subSchema(newattr);
         newproj.setSchema(newSchema);
         return newproj;

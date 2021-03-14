@@ -140,7 +140,7 @@ public class PlanCost {
         long joincost;
 
         switch (joinType) {
-            case JoinType.NESTEDJOIN:
+            case JoinType.PAGE_NESTED:
                 joincost = leftpages * rightpages;
                 break;
             default:

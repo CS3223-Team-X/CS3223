@@ -112,7 +112,7 @@ public class Join extends Operator {
             newJoinConditions.add((Condition) joinCondition.clone());
         }
 
-        Join newJoin = new Join(newLeft, newRight, newJoinConditions, optype);
+        Join newJoin = new Join(newLeft, newRight, newJoinConditions, opType);
         Schema newSchema = newLeft.getSchema().joinWith(newRight.getSchema());
         newJoin.setSchema(newSchema);
         newJoin.setJoinType(joinType);

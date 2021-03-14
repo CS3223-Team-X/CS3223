@@ -222,7 +222,7 @@ public class Select extends Operator {
     public Object clone() {
         Operator newbase = (Operator) base.clone();
         Condition newcon = (Condition) con.clone();
-        Select newsel = new Select(newbase, newcon, optype);
+        Select newsel = new Select(newbase, newcon, opType);
         newsel.setSchema((Schema) newbase.getSchema().clone());
         return newsel;
     }

@@ -83,16 +83,16 @@ public class Debug {
         if (optype == OpType.JOIN) {
             int exprtype = ((Join) node).getJoinType();
             switch (exprtype) {
-                case JoinType.NESTEDJOIN:
+                case JoinType.PAGE_NESTED:
                     System.out.print("NestedJoin(");
                     break;
-                case JoinType.BLOCKNESTED:
+                case JoinType.BLOCK_NESTED:
                     System.out.print("BlockNested(");
                     break;
-                case JoinType.SORTMERGE:
+                case JoinType.SORT_MERGE:
                     System.out.print("SortMerge(");
                     break;
-                case JoinType.HASHJOIN:
+                case JoinType.HASH:
                     System.out.print("HashJoin(");
                     break;
             }
