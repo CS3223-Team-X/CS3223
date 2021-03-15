@@ -98,7 +98,7 @@ public class Project extends Operator {
             //System.out.println();
             ArrayList<Object> present = new ArrayList<>();
             for (int j = 0; j < attrset.size(); j++) {
-                Object data = basetuple.dataAt(attrIndex[j]);
+                Object data = basetuple.getData(attrIndex[j]);
                 present.add(data);
             }
             Tuple outtuple = new Tuple(present);
