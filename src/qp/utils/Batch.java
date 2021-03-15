@@ -2,6 +2,7 @@ package qp.utils;
 
 import java.util.ArrayList;
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -46,6 +47,14 @@ public class Batch implements Serializable {
         tuples.set(i, t);
     }
 
+    public List<Tuple> getRecords() {
+        return tuples;
+    }
+
+    public Tuple getNextRecord() {
+        return tuples.get(0);
+    }
+
     public void addRecord(Tuple t) {
         tuples.add(t);
     }
@@ -56,6 +65,14 @@ public class Batch implements Serializable {
 
     public void removeRecord(int i) {
         tuples.remove(i);
+    }
+
+    public boolean hasMore() {
+        return !tuples.isEmpty();
+    }
+
+    public Tuple removeAndGetFirst() {
+        return tuples.remove(0);
     }
 
     public void clearRecords() {
@@ -76,5 +93,9 @@ public class Batch implements Serializable {
 
     public int size() {
         return tuples.size();
+    }
+
+    public void sort(Comparator<Tuple> comparator) {
+        tuples.sort(comparator);
     }
 }
