@@ -4,6 +4,8 @@
 
 package qp.operators;
 
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
 import qp.utils.*;
 
 public class Debug {

@@ -1,5 +1,6 @@
-package qp.operators;
+package qp.operators.joins;
 
+import qp.operators.Buffer;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Condition;

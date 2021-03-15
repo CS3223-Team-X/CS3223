@@ -1,4 +1,4 @@
-package qp.operators;
+package qp.operators.joins;
 
 /**
  * The Block Nested Join algorithm.

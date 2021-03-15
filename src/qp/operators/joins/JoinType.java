@@ -4,7 +4,7 @@
  * you have implemented in your query processor
  **/
 
-package qp.operators;
+package qp.operators.joins;
 
 public class JoinType {
     public static final int PAGE_NESTED = 0;

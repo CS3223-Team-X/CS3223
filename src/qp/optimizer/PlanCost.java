@@ -6,6 +6,8 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Condition;

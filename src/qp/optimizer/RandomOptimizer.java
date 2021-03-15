@@ -5,6 +5,10 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.BlockNestedJoin;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
+import qp.operators.joins.PageNestedJoin;
 import qp.utils.Attribute;
 import qp.utils.Condition;
 import qp.utils.RandNumb;

@@ -2,8 +2,9 @@
  * This is base class for all the join operators
  **/
 
-package qp.operators;
+package qp.operators.joins;
 
+import qp.operators.Operator;
 import qp.utils.Condition;
 import qp.utils.Schema;
 

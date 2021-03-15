@@ -1,4 +1,4 @@
-package qp.operators;
+package qp.operators.joins;
 
 /**
  * The Page Nested Join algorithm.
