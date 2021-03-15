@@ -50,11 +50,11 @@ public class RandomOptimizer {
             int numbuff = BufferManager.getBuffersPerJoin();
             switch (joinType) {
                 case JoinType.PAGE_NESTED:
-                    PageNestedJoin nj = new PageNestedJoin((Join) node);
-                    nj.setLeft(left);
-                    nj.setRight(right);
-                    nj.setNumBuff(numbuff);
-                    return nj;
+                    PageNestedJoin pnj = new PageNestedJoin((Join) node);
+                    pnj.setLeft(left);
+                    pnj.setRight(right);
+                    pnj.setNumBuff(numbuff);
+                    return pnj;
                 default:
                     return node;
             }
