@@ -61,6 +61,7 @@ public class RandomOptimizer {
                     bnj.setLeft(left);
                     bnj.setRight(right);
                     bnj.setNumBuff(numbuff);
+                    return bnj;
                 default:
                     return node;
             }

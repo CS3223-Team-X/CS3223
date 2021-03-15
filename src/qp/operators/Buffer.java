@@ -9,42 +9,54 @@ import java.util.List;
 public class Buffer {
     private final int numPages;
     private final List<Batch> pages;
-    private final int[] incrementalSizes;
+    private final List<Integer> incrementalPageSizes;
 
     public Buffer(int numPages) {
         this.numPages = numPages;
         pages = new ArrayList<>(this.numPages);
-        incrementalSizes = computeIncrementalSizes();
-    }
-
-    private int[] computeIncrementalSizes() {
-        int[] incrementalPageSizes = new int[numPages];
-        incrementalPageSizes[0] = pages.get(1).size();
-        for (int i = 1; i < numPages; i++) {
-            incrementalPageSizes[i] = incrementalPageSizes[i - 1] + pages.get(i).size();
-        }
-        return incrementalPageSizes;
+        incrementalPageSizes = new ArrayList<>();
     }
 
     public void addPage(Batch page) {
         pages.add(page);
+        computeIncrementalPageSize();
+    }
+
+    private void computeIncrementalPageSize() {
+        if (pages.size() == 1) {
+            incrementalPageSizes.add(pages.get(0).size());
+        } else {
+            int lastIndex = pages.size() - 1;
+            incrementalPageSizes.add(incrementalPageSizes.get(lastIndex - 1) + pages.get(lastIndex).size());
+        }
     }
 
     public Tuple getRecord(int index) {
-        for (int i = 0; i < incrementalSizes.length; i++) {
-            if (index < incrementalSizes[i]) {
-                int absoluteIndex = index - i * Batch.getPageSize();
-                return pages.get(i).getRecord(absoluteIndex);
+        for (int i = 0; i < incrementalPageSizes.size(); i++) {
+            if (index < incrementalPageSizes.get(i)) {
+                if (i == 0) {
+                    return pages.get(i).getRecord(index);
+                } else {
+                    int absoluteIndex = index - incrementalPageSizes.get(i - 1);
+                    return pages.get(i).getRecord(absoluteIndex);
+                }
             }
         }
         return null;
     }
 
     public int size() {
-        return incrementalSizes[numPages - 1];
+        if (pages.isEmpty()) {
+            return 0;
+        }
+        return incrementalPageSizes.get(pages.size() - 1);
     }
 
     public boolean isEmpty() {
         return pages.isEmpty();
+    }
+
+    public boolean hasCapacity() {
+        return numPages > pages.size();
     }
 }

@@ -192,6 +192,9 @@ public class NestedJoin extends Join {
             if (batch == null) {
                 break;
             }
+            if (!leftBuffer.hasCapacity()) {
+                break;
+            }
             leftBuffer.addPage(batch);
         }
         return leftBuffer;
