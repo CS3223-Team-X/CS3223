@@ -301,6 +301,17 @@ public class Sort extends Operator {
         }
     }
 
+    @Override
+    public Object clone() {
+        List<Attribute> newSortAttributes = new ArrayList<>();
+        for (Attribute attribute : sortAttributes) {
+            newSortAttributes.add((Attribute) attribute.clone());
+        }
+        Sort newSort = new Sort((Operator) base.clone(), newSortAttributes, sortDirection, bufferSize);
+        newSort.setSchema((Schema) base.getSchema().clone());
+        return newSort;
+    }
+
     public enum Direction {
         ASC, DSC
     }
