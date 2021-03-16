@@ -14,7 +14,7 @@ import qp.utils.Condition;
 import qp.utils.RandNumb;
 import qp.utils.SQLQuery;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class RandomOptimizer {
 
@@ -395,7 +395,7 @@ public class RandomOptimizer {
         } else if (node.getOpType() == OperatorType.PROJECT) {
             Operator base = ((Project) node).getBase();
             modifySchema(base);
-            ArrayList attrlist = ((Project) node).getProjAttr();
+            List<Attribute> attrlist = ((Project) node).getProjAttr();
             node.setSchema(base.getSchema().subSchema(attrlist));
         }
     }

@@ -10,11 +10,12 @@ import qp.utils.Schema;
 import qp.utils.Tuple;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Project extends Operator {
 
     Operator base;                 // Base table to project
-    ArrayList<Attribute> attrset;  // Set of attributes to project
+    List<Attribute> attrset;  // Set of attributes to project
     int batchsize;                 // Number of tuples per outbatch
 
     /**
@@ -30,7 +31,7 @@ public class Project extends Operator {
      **/
     int[] attrIndex;
 
-    public Project(Operator base, ArrayList<Attribute> as, int type) {
+    public Project(Operator base, List<Attribute> as, int type) {
         super(type);
         this.base = base;
         this.attrset = as;
@@ -44,7 +45,7 @@ public class Project extends Operator {
         this.base = base;
     }
 
-    public ArrayList<Attribute> getProjAttr() {
+    public List<Attribute> getProjAttr() {
         return attrset;
     }
 

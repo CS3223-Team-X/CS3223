@@ -14,28 +14,30 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 
 public class RandomInitialPlan {
+    private final SQLQuery sqlquery;
 
-    SQLQuery sqlquery;
-
-    ArrayList<Attribute> projectlist;
-    ArrayList<String> fromlist;
-    ArrayList<Condition> selectionlist;   // List of select conditons
-    ArrayList<Condition> joinlist;        // List of join conditions
-    ArrayList<Attribute> groupbylist;
-    int numJoin;            // Number of joins in this query
+    private List<Attribute> projectList;
+    private final List<String> fromList;
+    private final List<Condition> selectionList;   // List of select conditons
+    private final List<Condition> joinList;        // List of join conditions
+    private final List<Attribute> groupByList;
+    private final List<Attribute> orderByList;
+    private final int numJoin;            // Number of joins in this query
     HashMap<String, Operator> tab_op_hash;  // Table name to the Operator
     Operator root;          // Root of the query plan tree
 
-    public RandomInitialPlan(SQLQuery sqlquery) {
-        this.sqlquery = sqlquery;
-        projectlist = sqlquery.getProjectList();
-        fromlist = sqlquery.getFromList();
-        selectionlist = sqlquery.getSelectionList();
-        joinlist = sqlquery.getJoinList();
-        groupbylist = sqlquery.getGroupByList();
-        numJoin = joinlist.size();
+    public RandomInitialPlan(SQLQuery sqlQuery) {
+        this.sqlquery = sqlQuery;
+        projectList = sqlQuery.getProjectList();
+        fromList = sqlQuery.getFromList();
+        selectionList = sqlQuery.getSelectionList();
+        joinList = sqlQuery.getJoinList();
+        groupByList = sqlQuery.getGroupByList();
+        orderByList = sqlQuery.getOrderByList();
+        numJoin = joinList.size();
     }
 
     /**
@@ -60,18 +62,11 @@ public class RandomInitialPlan {
             System.exit(1);
         }
 
-        if (sqlquery.getOrderByList().size() > 0) {
-            System.err.println("Orderby is not implemented.");
-            System.exit(1);
-        }
-
         tab_op_hash = new HashMap<>();
-        createScanOp();
-        createSelectOp();
-        if (numJoin != 0) {
-            createJoinOp();
-        }
-        createProjectOp();
+        createScanOperators();
+        createSelectOperators();
+        createJoinOperators();
+        createProjectOperators();
         createOrderByOperators();
 
         return root;
@@ -81,11 +76,11 @@ public class RandomInitialPlan {
      * Create Scan Operator for each of the table
      * * mentioned in from list
      **/
-    public void createScanOp() {
-        int numtab = fromlist.size();
+    public void createScanOperators() {
+        int numtab = fromList.size();
         Scan tempop = null;
         for (int i = 0; i < numtab; ++i) {  // For each table in from list
-            String tabname = fromlist.get(i);
+            String tabname = fromList.get(i);
             Scan op1 = new Scan(tabname, OperatorType.SCAN);
             tempop = op1;
 
@@ -111,7 +106,7 @@ public class RandomInitialPlan {
         // selectionlist is empty, hence we set the root to be
         // the scan operator. the projectOp would be put on top of
         // this later in CreateProjectOp
-        if (selectionlist.size() == 0) {
+        if (selectionList.size() == 0) {
             root = tempop;
             return;
         }
@@ -122,10 +117,10 @@ public class RandomInitialPlan {
      * Create Selection Operators for each of the
      * * selection condition mentioned in Condition list
      **/
-    public void createSelectOp() {
+    public void createSelectOperators() {
         Select op1 = null;
-        for (int j = 0; j < selectionlist.size(); ++j) {
-            Condition cn = selectionlist.get(j);
+        for (int j = 0; j < selectionList.size(); ++j) {
+            Condition cn = selectionList.get(j);
             if (cn.getOpType() == Condition.SELECT) {
                 String tabname = cn.getLhs().getTabName();
                 Operator tempop = (Operator) tab_op_hash.get(tabname);
@@ -139,14 +134,18 @@ public class RandomInitialPlan {
         /** The last selection is the root of the plan tre
          ** constructed thus far
          **/
-        if (selectionlist.size() != 0)
+        if (selectionList.size() != 0)
             root = op1;
     }
 
     /**
      * create join operators
      **/
-    public void createJoinOp() {
+    public void createJoinOperators() {
+        if (numJoin == 0) {
+            return;
+        }
+
         BitSet bitCList = new BitSet(numJoin);
         int jnnum = RandNumb.randInt(0, numJoin - 1);
         Join jn = null;
@@ -159,7 +158,7 @@ public class RandomInitialPlan {
             while (bitCList.get(jnnum)) {
                 jnnum = RandNumb.randInt(0, numJoin - 1);
             }
-            Condition cn = (Condition) joinlist.get(jnnum);
+            Condition cn = (Condition) joinList.get(jnnum);
             String lefttab = cn.getLhs().getTabName();
             String righttab = ((Attribute) cn.getRhs()).getTabName();
             Operator left = (Operator) tab_op_hash.get(lefttab);
@@ -181,17 +180,16 @@ public class RandomInitialPlan {
         /** The last join operation is the root for the
          ** constructed till now
          **/
-        if (numJoin != 0)
-            root = jn;
+        root = jn;
     }
 
-    public void createProjectOp() {
+    public void createProjectOperators() {
         Operator base = root;
-        if (projectlist == null)
-            projectlist = new ArrayList<Attribute>();
-        if (!projectlist.isEmpty()) {
-            root = new Project(base, projectlist, OperatorType.PROJECT);
-            Schema newSchema = base.getSchema().subSchema(projectlist);
+        if (projectList == null)
+            projectList = new ArrayList<>();
+        if (!projectList.isEmpty()) {
+            root = new Project(base, projectList, OperatorType.PROJECT);
+            Schema newSchema = base.getSchema().subSchema(projectList);
             root.setSchema(newSchema);
         }
     }
