@@ -1,9 +1,6 @@
 package qp.operators;
 
-import qp.utils.Attribute;
-import qp.utils.Batch;
-import qp.utils.Schema;
-import qp.utils.Tuple;
+import qp.utils.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -20,12 +17,14 @@ public class Sort extends Operator {
 
     private final Operator base;
     private final Direction sortDirection;
+    private final List<Attribute> sortAttributes;
     private final List<Integer> sortIndices;
     private final Comparator<Tuple> recordComparator;
     private final int bufferSize;
     private final List<Batch> inputBuffer;
 
     private ObjectInputStream sortedRecordsInputStream;
+    private boolean isEndOfStream;
 
     /**
      * Constructs an instance with an allocated buffer size.
@@ -33,11 +32,12 @@ public class Sort extends Operator {
      * @param bufferSize The buffer size
      */
     public Sort(Operator base, List<Attribute> sortAttributes, Sort.Direction sortDirection, int bufferSize) {
-        super(OperatorType.SORT);
+        super(OperatorType.ORDER);
         this.base = base;
 
         this.sortDirection = sortDirection;
-        this.sortIndices = computeSortIndices(this.base.getSchema(), sortAttributes);
+        this.sortAttributes = sortAttributes;
+        this.sortIndices = computeSortIndices(this.base.getSchema(), this.sortAttributes);
         recordComparator = generateTupleComparator(this.sortDirection, this.sortIndices);
 
         this.bufferSize = bufferSize;
@@ -81,11 +81,12 @@ public class Sort extends Operator {
         }
 
         List<String> sortedRuns = generateSortedRuns();
-        while (sortedRuns.size() != 1) {
+        while (sortedRuns.size() > 1) {
             sortedRuns = mergeSortedRuns(sortedRuns);
         }
         try {
             sortedRecordsInputStream = new ObjectInputStream(new FileInputStream(sortedRuns.get(0)));
+            isEndOfStream = false;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -110,21 +111,22 @@ public class Sort extends Operator {
             }
             records.sort(recordComparator);
 
-            for (Tuple record : records) {
+            int tupleIndex = 0;
+            while (tupleIndex < records.size()) {
                 for (Batch page : inputBuffer) {
                     for (int i = 0; i < page.size(); i++) {
+                        Tuple record = records.get(tupleIndex++);
                         page.setRecord(record, i);
                     }
                 }
             }
-
-            inputBuffer.clear();
 
             String sortedRun = FILE_PREFIX + uniqueFileNumber++;
             try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
                 for (Batch page : inputBuffer) {
                     out.writeObject(page);
                 }
+                inputBuffer.clear();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -141,8 +143,13 @@ public class Sort extends Operator {
         Batch page;
         try {
             while (inputBuffer.size() < bufferSize && (page = (Batch) in.readObject()) != null) {
-                inputBuffer.add(page);
+                //TODO stopgap measure; not sure why page can be empty
+                if (page.size() != 0) {
+                    inputBuffer.add(page);
+                }
             }
+        } catch (EOFException e) {
+            // do not read anymore
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -267,8 +274,16 @@ public class Sort extends Operator {
 
     @Override
     public Batch next() {
+        if (isEndOfStream) {
+            return null;
+        }
+
         try {
             return (Batch) sortedRecordsInputStream.readObject();
+        } catch (EOFException e) {
+            isEndOfStream = true;
+            return null;
+            // do not read any more
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             return null;
