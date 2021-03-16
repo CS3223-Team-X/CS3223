@@ -27,9 +27,9 @@ More information about this assignment can be found [here](https://www.comp.nus.
 ## About
 This is our implementation for CS3223 Database Systems Implementation module. Our team consists of the following
 students from National University of Singapore, School of Computing.
-* [Gabriel Yik](https://github.com/GabrielYik)
-* [Kang Wangkai](https://github.com/Kangwkk)
-* [Jovan Huang Tian Chun](https://github.com/jovanhuang)
+* [YIK REN JUN, GABRIEL](https://github.com/GabrielYik)
+* [KANG WANGKAI](https://github.com/Kangwkk)
+* [JOVAN HUANG TIAN CHUN](https://github.com/jovanhuang)
 
 
 ## Additional Features Implemented
