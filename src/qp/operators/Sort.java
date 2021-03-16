@@ -1,10 +1,13 @@
 package qp.operators;
 
+import qp.utils.Attribute;
 import qp.utils.Batch;
+import qp.utils.Schema;
 import qp.utils.Tuple;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -16,7 +19,9 @@ public class Sort extends Operator {
     private static final String UNSORTED_FILE = "ext-sort_unsorted";
 
     private final Operator base;
-    private final int sortAttributeIndex;
+    private final Direction sortDirection;
+    private final List<Integer> sortIndices;
+    private final Comparator<Tuple> recordComparator;
     private final int bufferSize;
     private final List<Batch> inputBuffer;
 
@@ -27,12 +32,36 @@ public class Sort extends Operator {
      *
      * @param bufferSize The buffer size
      */
-    public Sort(Operator base, int sortAttributeIndex, int bufferSize) {
+    public Sort(Operator base, List<Attribute> sortAttributes, Sort.Direction sortDirection, int bufferSize) {
         super(OperatorType.SORT);
         this.base = base;
-        this.sortAttributeIndex = sortAttributeIndex;
+
+        this.sortDirection = sortDirection;
+        this.sortIndices = computeSortIndices(this.base.getSchema(), sortAttributes);
+        recordComparator = generateTupleComparator(this.sortDirection, this.sortIndices);
+
         this.bufferSize = bufferSize;
         inputBuffer = new ArrayList<>(bufferSize);
+    }
+
+    private List<Integer> computeSortIndices(Schema schema, List<Attribute> sortedAttributes) {
+        List<Integer> sortIndices = new ArrayList<>();
+        for (Attribute sortAttribute : sortedAttributes) {
+            int sortIndex = schema.indexOf(sortAttribute);
+            sortIndices.add(sortIndex);
+        }
+        return sortIndices;
+    }
+
+    private Comparator<Tuple> generateTupleComparator(Sort.Direction sortDirection, List<Integer> sortIndices) {
+        switch (sortDirection) {
+            case ASC:
+                return (o1, o2) -> Tuple.compare(o1, o2, sortIndices);
+            case DSC:
+                return (o1, o2) -> Tuple.compare(o2, o1, sortIndices);
+            default:
+                throw new RuntimeException();
+        }
     }
 
     @Override
@@ -79,7 +108,7 @@ public class Sort extends Operator {
             for (Batch batch : inputBuffer) {
                 records.addAll(batch.getRecords());
             }
-            records.sort((t1, t2) -> Tuple.compareTuples(t1, t2, sortAttributeIndex, sortAttributeIndex));
+            records.sort(recordComparator);
 
             for (Tuple record : records) {
                 for (Batch page : inputBuffer) {
@@ -145,10 +174,30 @@ public class Sort extends Operator {
                     Batch page = inputBuffer.get(i);
                     Tuple record = page.getNextRecord();
                     if (record != targetRecord) {
-                        int result = Tuple.compareTuples(targetRecord, record, 1, 1);
+                        int result = Tuple.compare(targetRecord, record, this.sortIndices);
+                        if (result < 0) {
+                            switch (sortDirection) {
+                                case ASC:
+                                    continue;
+                                case DSC:
+                                    targetIndex = i;
+                                    targetRecord = record;
+                                    break;
+                                default:
+                                    throw new RuntimeException();
+                            }
+                        }
                         if (result > 0) {
-                            targetIndex = i;
-                            targetRecord = record;
+                            switch (sortDirection) {
+                                case ASC:
+                                    targetIndex = i;
+                                    targetRecord = record;
+                                    break;
+                                case DSC:
+                                    continue;
+                                default:
+                                    throw new RuntimeException();
+                            }
                         }
                     }
                 }
