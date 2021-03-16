@@ -4,6 +4,8 @@
 
 package qp.operators;
 
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
 import qp.utils.*;
 
 public class Debug {
@@ -83,16 +85,16 @@ public class Debug {
         if (optype == OpType.JOIN) {
             int exprtype = ((Join) node).getJoinType();
             switch (exprtype) {
-                case JoinType.NESTEDJOIN:
+                case JoinType.PAGE_NESTED:
                     System.out.print("NestedJoin(");
                     break;
-                case JoinType.BLOCKNESTED:
+                case JoinType.BLOCK_NESTED:
                     System.out.print("BlockNested(");
                     break;
-                case JoinType.SORTMERGE:
+                case JoinType.SORT_MERGE:
                     System.out.print("SortMerge(");
                     break;
-                case JoinType.HASHJOIN:
+                case JoinType.HASH:
                     System.out.print("HashJoin(");
                     break;
             }
@@ -125,8 +127,8 @@ public class Debug {
      * print a tuple
      **/
     public static void PPrint(Tuple t) {
-        for (int i = 0; i < t.data().size(); i++) {
-            Object data = t.dataAt(i);
+        for (int i = 0; i < t.getData().size(); i++) {
+            Object data = t.getData(i);
             if (data instanceof Integer) {
                 System.out.print((Integer) data + "\t");
             } else if (data instanceof Float) {
@@ -144,7 +146,7 @@ public class Debug {
      **/
     public static void PPrint(Batch b) {
         for (int i = 0; i < b.size(); i++) {
-            PPrint(b.get(i));
+            PPrint(b.getRecord(i));
             System.out.println();
         }
     }

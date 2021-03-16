@@ -4,9 +4,6 @@
 
 package qp.utils;
 
-import qp.utils.*;
-
-import java.util.*;
 import java.io.*;
 
 public class TupleWriter {
@@ -62,7 +59,7 @@ public class TupleWriter {
         if (outBatch == null) {
             outBatch = new Batch(batchsize);
         }
-        outBatch.add(nextTuple);
+        outBatch.addRecord(nextTuple);
         ++numTuple;
         if (outBatch.isFull())
             writeBatch();        // Immediately writes to file when we have enough tuples to fill a BAtch

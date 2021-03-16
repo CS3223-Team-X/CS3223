@@ -155,8 +155,8 @@ public class QueryMain {
      * Execute query and print run statistics
      **/
     public static double executeQuery(Operator root, String resultfile) {
-        long starttime = System.currentTimeMillis();
-        if (root.open() == false) {
+        long startTime = System.currentTimeMillis();
+        if (!root.open()) {
             System.out.println("Root: Error in opening of root");
             System.exit(1);
         }
@@ -176,16 +176,16 @@ public class QueryMain {
         Batch resultbatch;
         while ((resultbatch = root.next()) != null) {
             for (int i = 0; i < resultbatch.size(); ++i) {
-                printTuple(resultbatch.get(i));
+                printTuple(resultbatch.getRecord(i));
             }
         }
         root.close();
         out.close();
 
-        long endtime = System.currentTimeMillis();
-        double executiontime = (endtime - starttime) / 1000.0;
-        System.out.println("Execution time = " + executiontime);
-        return executiontime;
+        long endTime = System.currentTimeMillis();
+        double executionTime = (endTime - startTime) / 1000.0;
+        System.out.println("Execution time = " + executionTime);
+        return executionTime;
     }
 
     protected static void printSchema(Schema schema) {
@@ -206,7 +206,7 @@ public class QueryMain {
 
     protected static void printTuple(Tuple t) {
         for (int i = 0; i < numAtts; ++i) {
-            Object data = t.dataAt(i);
+            Object data = t.getData(i);
             if (data instanceof Integer) {
                 out.print(((Integer) data).intValue() + "\t");
             } else if (data instanceof Float) {

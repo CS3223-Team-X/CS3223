@@ -5,6 +5,10 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.BlockNestedJoin;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
+import qp.operators.joins.PageNestedJoin;
 import qp.utils.Attribute;
 import qp.utils.Condition;
 import qp.utils.RandNumb;
@@ -49,12 +53,19 @@ public class RandomOptimizer {
             int joinType = ((Join) node).getJoinType();
             int numbuff = BufferManager.getBuffersPerJoin();
             switch (joinType) {
-                case JoinType.NESTEDJOIN:
-                    NestedJoin nj = new NestedJoin((Join) node);
-                    nj.setLeft(left);
-                    nj.setRight(right);
-                    nj.setNumBuff(numbuff);
-                    return nj;
+                case JoinType.PAGE_NESTED:
+                    PageNestedJoin pnj = new PageNestedJoin((Join) node);
+                    pnj.setLeft(left);
+                    pnj.setRight(right);
+                    pnj.setNumBuff(numbuff);
+                    return pnj;
+                case JoinType.BLOCK_NESTED:
+                    int blockSize = BufferManager.getBuffersPerJoin() - 2;
+                    BlockNestedJoin bnj = new BlockNestedJoin((Join) node, blockSize);
+                    bnj.setLeft(left);
+                    bnj.setRight(right);
+                    bnj.setNumBuff(numbuff);
+                    return bnj;
                 default:
                     return node;
             }

@@ -11,22 +11,18 @@ import java.io.*;
  * Tuple - a simple object which holds an ArrayList of data
  */
 public class Tuple implements Serializable {
+    private final List<Object> data;
 
-    public ArrayList<Object> _data;
-
-    public Tuple(ArrayList<Object> d) {
-        _data = d;
+    public Tuple(List<Object> data) {
+        this.data = data;
     }
 
-    /**
-     * Accessor for data
-     */
-    public ArrayList<Object> data() {
-        return _data;
+    public List<Object> getData() {
+        return data;
     }
 
-    public Object dataAt(int index) {
-        return _data.get(index);
+    public Object getData(int index) {
+        return data.get(index);
     }
 
     /**
@@ -34,8 +30,8 @@ public class Tuple implements Serializable {
      * * before performing actual join operation
      **/
     public boolean checkJoin(Tuple right, int leftindex, int rightindex) {
-        Object leftData = dataAt(leftindex);
-        Object rightData = right.dataAt(rightindex);
+        Object leftData = getData(leftindex);
+        Object rightData = right.getData(rightindex);
         if (leftData.equals(rightData))
             return true;
         else
@@ -46,12 +42,13 @@ public class Tuple implements Serializable {
      * Checks whether the join condition is satisfied or not with multiple conditions
      * * before performing actual join operation
      **/
-    public boolean checkJoin(Tuple right, ArrayList<Integer> leftindex, ArrayList<Integer> rightindex) {
-        if (leftindex.size() != rightindex.size())
+    public boolean checkJoin(Tuple right, List<Integer> leftindex, List<Integer> rightindex) {
+        if (leftindex.size() != rightindex.size()) {
             return false;
+        }
         for (int i = 0; i < leftindex.size(); ++i) {
-            Object leftData = dataAt(leftindex.get(i));
-            Object rightData = right.dataAt(rightindex.get(i));
+            Object leftData = getData(leftindex.get(i));
+            Object rightData = right.getData(rightindex.get(i));
             if (!leftData.equals(rightData)) {
                 return false;
             }
@@ -63,8 +60,8 @@ public class Tuple implements Serializable {
      * Joining two tuples without duplicate column elimination
      **/
     public Tuple joinWith(Tuple right) {
-        ArrayList<Object> newData = new ArrayList<>(this.data());
-        newData.addAll(right.data());
+        ArrayList<Object> newData = new ArrayList<>(this.getData());
+        newData.addAll(right.getData());
         return new Tuple(newData);
     }
 
@@ -79,8 +76,8 @@ public class Tuple implements Serializable {
      * Comparing tuples in different tables, used for join condition checking
      **/
     public static int compareTuples(Tuple left, Tuple right, int leftIndex, int rightIndex) {
-        Object leftdata = left.dataAt(leftIndex);
-        Object rightdata = right.dataAt(rightIndex);
+        Object leftdata = left.getData(leftIndex);
+        Object rightdata = right.getData(rightIndex);
         if (leftdata instanceof Integer) {
             return ((Integer) leftdata).compareTo((Integer) rightdata);
         } else if (leftdata instanceof String) {
@@ -104,8 +101,8 @@ public class Tuple implements Serializable {
             return 0;
         }
         for (int i = 0; i < leftIndex.size(); ++i) {
-            Object leftdata = left.dataAt(leftIndex.get(i));
-            Object rightdata = right.dataAt(rightIndex.get(i));
+            Object leftdata = left.getData(leftIndex.get(i));
+            Object rightdata = right.getData(rightIndex.get(i));
             if (leftdata.equals(rightdata)) continue;
             if (leftdata instanceof Integer) {
                 return ((Integer) leftdata).compareTo((Integer) rightdata);

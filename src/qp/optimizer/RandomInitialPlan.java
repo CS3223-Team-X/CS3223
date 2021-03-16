@@ -5,6 +5,8 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
 import qp.utils.*;
 
 import java.io.FileInputStream;

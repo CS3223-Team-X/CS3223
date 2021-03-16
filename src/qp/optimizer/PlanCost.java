@@ -6,6 +6,8 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Condition;
@@ -106,17 +108,17 @@ public class PlanCost {
 
         /** Get size of the tuple in output & correspondigly calculate
          ** buffer capacity, i.e., number of tuples per page **/
-        long tuplesize = node.getSchema().getTupleSize();
-        long outcapacity = Math.max(1, Batch.getPageSize() / tuplesize);
-        long leftuplesize = leftschema.getTupleSize();
-        long leftcapacity = Math.max(1, Batch.getPageSize() / leftuplesize);
-        long righttuplesize = rightschema.getTupleSize();
-        long rightcapacity = Math.max(1, Batch.getPageSize() / righttuplesize);
-        long leftpages = (long) Math.ceil(((double) lefttuples) / (double) leftcapacity);
-        long rightpages = (long) Math.ceil(((double) righttuples) / (double) rightcapacity);
+        long tupleSize = node.getSchema().getTupleSize();
+        long outcapacity = Math.max(1, Batch.getPageSize() / tupleSize);
+        long leftTupleSize = leftschema.getTupleSize();
+        long leftCapacity = Math.max(1, Batch.getPageSize() / leftTupleSize);
+        long rightTupleSize = rightschema.getTupleSize();
+        long rightCapacity = Math.max(1, Batch.getPageSize() / rightTupleSize);
+        long leftPages = (long) Math.ceil(((double) lefttuples) / (double) leftCapacity);
+        long rightPages = (long) Math.ceil(((double) righttuples) / (double) rightCapacity);
 
         double tuples = (double) lefttuples * righttuples;
-        for (Condition con : node.getConditionList()) {
+        for (Condition con : node.getJoinConditions()) {
             Attribute leftjoinAttr = con.getLhs();
             Attribute rightjoinAttr = (Attribute) con.getRhs();
             int leftattrind = leftschema.indexOf(leftjoinAttr);
@@ -137,17 +139,20 @@ public class PlanCost {
         /** Calculate the cost of the operation **/
         int joinType = node.getJoinType();
         long numbuff = BufferManager.getBuffersPerJoin();
-        long joincost;
+        long joinCost;
 
         switch (joinType) {
-            case JoinType.NESTEDJOIN:
-                joincost = leftpages * rightpages;
+            case JoinType.PAGE_NESTED:
+                joinCost = leftPages * rightPages;
+                break;
+            case JoinType.BLOCK_NESTED:
+                joinCost = leftPages + (long) Math.ceil(leftPages/ (double) (BufferManager.getBuffersPerJoin() - 2) ) * rightPages;
                 break;
             default:
                 System.out.println("join type is not supported");
                 return 0;
         }
-        cost = cost + joincost;
+        cost = cost + joinCost;
 
         return outtuples;
     }

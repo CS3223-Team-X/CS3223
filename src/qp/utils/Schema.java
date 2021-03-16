@@ -6,15 +6,16 @@ package qp.utils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Schema implements Serializable {
-    ArrayList<Attribute> attset;  // The attributes belong to this schema
-    int tupleSize;                // Number of bytes required for this tuple (size of record)
+    private final List<Attribute> attributes;  // The attributes belong to this schema
+    private int tupleSize;                // Number of bytes required for this tuple (size of record)
 
-    public Schema(ArrayList<Attribute> colset) {
-        attset = new ArrayList<>();
+    public Schema(List<Attribute> colset) {
+        attributes = new ArrayList<>();
         for (Object o : colset) {
-            attset.add((Attribute) o);
+            attributes.add((Attribute) o);
         }
     }
 
@@ -27,24 +28,24 @@ public class Schema implements Serializable {
     }
 
     public int getNumCols() {
-        return attset.size();
+        return attributes.size();
     }
 
     public void add(Attribute attr) {
-        attset.add(attr);
+        attributes.add(attr);
     }
 
-    public ArrayList<Attribute> getAttList() {
-        return attset;
+    public List<Attribute> getAttList() {
+        return attributes;
     }
 
     public Attribute getAttribute(int i) {
-        return attset.get(i);
+        return attributes.get(i);
     }
 
     public int indexOf(Attribute tarattr) {
-        for (int i = 0; i < attset.size(); ++i) {
-            Attribute attr = attset.get(i);
+        for (int i = 0; i < attributes.size(); ++i) {
+            Attribute attr = attributes.get(i);
             if (attr.equals(tarattr)) {
                 return i;
             }
@@ -53,8 +54,8 @@ public class Schema implements Serializable {
     }
 
     public int typeOf(Attribute tarattr) {
-        for (int i = 0; i < attset.size(); ++i) {
-            Attribute attr = attset.get(i);
+        for (int i = 0; i < attributes.size(); ++i) {
+            Attribute attr = attributes.get(i);
             if (attr.equals(tarattr)) {
                 return attr.getType();
             }
@@ -63,14 +64,14 @@ public class Schema implements Serializable {
     }
 
     public int typeOf(int attrAt) {
-        Attribute attr = attset.get(attrAt);
+        Attribute attr = attributes.get(attrAt);
         return attr.getType();
     }
 
     /** Checks whether given attribute is present in this Schema or not **/
     public boolean contains(Attribute tarattr) {
-        for (int i = 0; i < attset.size(); ++i) {
-            Attribute attr = attset.get(i);
+        for (int i = 0; i < attributes.size(); ++i) {
+            Attribute attr = attributes.get(i);
             if (attr.equals(tarattr)) {
                 return true;
             }
@@ -81,7 +82,7 @@ public class Schema implements Serializable {
     /** The schema of resultant join operation
      Not considered the elimination of duplicate column **/
     public Schema joinWith(Schema right) {
-        ArrayList<Attribute> newVector = new ArrayList<>(this.attset);
+        ArrayList<Attribute> newVector = new ArrayList<>(this.attributes);
         newVector.addAll(right.getAttList());
         int newTupleSize = this.getTupleSize() + right.getTupleSize();
         Schema newSchema = new Schema(newVector);
@@ -113,12 +114,12 @@ public class Schema implements Serializable {
 
     /** Check compatibility for set operations **/
     public boolean checkCompat(Schema right) {
-        ArrayList<Attribute> rightattrlist = right.getAttList();
-        if (attset.size() != rightattrlist.size()) {
+        List<Attribute> rightattrlist = right.getAttList();
+        if (attributes.size() != rightattrlist.size()) {
             return false;
         }
-        for (int i = 0; i < attset.size(); ++i) {
-            if (attset.get(i).getProjectedType() != rightattrlist.get(i).getProjectedType()) {
+        for (int i = 0; i < attributes.size(); ++i) {
+            if (attributes.get(i).getProjectedType() != rightattrlist.get(i).getProjectedType()) {
                 return false;
             }
         }
@@ -127,8 +128,8 @@ public class Schema implements Serializable {
 
     public Object clone() {
         ArrayList<Attribute> newVector = new ArrayList<>();
-        for (int i = 0; i < attset.size(); ++i) {
-            Attribute newAttribute = (Attribute) (attset.get(i)).clone();
+        for (int i = 0; i < attributes.size(); ++i) {
+            Attribute newAttribute = (Attribute) (attributes.get(i)).clone();
             newVector.add(newAttribute);
         }
         Schema newSchema = new Schema(newVector);

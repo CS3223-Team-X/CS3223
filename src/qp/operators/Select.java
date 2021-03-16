@@ -95,12 +95,12 @@ public class Select extends Operator {
              ** or the output buffer is full
              **/
             for (i = start; i < inbatch.size() && (!outbatch.isFull()); ++i) {
-                Tuple present = inbatch.get(i);
+                Tuple present = inbatch.getRecord(i);
                 /** If the condition is satisfied then
                  ** this tuple is added tot he output buffer
                  **/
                 if (checkCondition(present))
-                    outbatch.add(present);
+                    outbatch.addRecord(present);
             }
 
             /** Modify the cursor to the position requierd
@@ -131,7 +131,7 @@ public class Select extends Operator {
         Attribute attr = con.getLhs();
         int index = schema.indexOf(attr);
         int datatype = schema.typeOf(attr);
-        Object srcValue = tuple.dataAt(index);
+        Object srcValue = tuple.getData(index);
         int exprtype = con.getExprType();
 
         if (datatype == Attribute.INT) {
@@ -140,7 +140,7 @@ public class Select extends Operator {
             if (con.getRhs() instanceof String) {
                 checkVal = Integer.parseInt((String) con.getRhs());
             } else if (con.getRhs() instanceof Attribute) {
-                checkVal = ((Integer) tuple.dataAt(schema.indexOf((Attribute) con.getRhs()))).intValue();
+                checkVal = ((Integer) tuple.getData(schema.indexOf((Attribute) con.getRhs()))).intValue();
             } else {
                 System.out.println("Select: Malformed condition");
             }
@@ -171,7 +171,7 @@ public class Select extends Operator {
             if (con.getRhs() instanceof String) {
                 flag = srcVal.compareTo((String) con.getRhs());
             } else if (con.getRhs() instanceof Attribute) {
-                flag = srcVal.compareTo(((String) tuple.dataAt(schema.indexOf((Attribute) con.getRhs()))));
+                flag = srcVal.compareTo(((String) tuple.getData(schema.indexOf((Attribute) con.getRhs()))));
             } else {
                 System.out.println("Select: Malformed condition");
             }
@@ -196,7 +196,7 @@ public class Select extends Operator {
             if (con.getRhs() instanceof String) {
                 checkVal = Float.parseFloat((String) con.getRhs());
             } else if (con.getRhs() instanceof Attribute) {
-                checkVal = ((Float) tuple.dataAt(schema.indexOf((Attribute) con.getRhs()))).floatValue();
+                checkVal = ((Float) tuple.getData(schema.indexOf((Attribute) con.getRhs()))).floatValue();
             } else {
                 System.out.println("Select: Malformed condition");
             }
@@ -222,7 +222,7 @@ public class Select extends Operator {
     public Object clone() {
         Operator newbase = (Operator) base.clone();
         Condition newcon = (Condition) con.clone();
-        Select newsel = new Select(newbase, newcon, optype);
+        Select newsel = new Select(newbase, newcon, opType);
         newsel.setSchema((Schema) newbase.getSchema().clone());
         return newsel;
     }

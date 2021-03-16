@@ -93,16 +93,16 @@ public class Project extends Operator {
         }
 
         for (int i = 0; i < inbatch.size(); i++) {
-            Tuple basetuple = inbatch.get(i);
+            Tuple basetuple = inbatch.getRecord(i);
             //Debug.PPrint(basetuple);
             //System.out.println();
             ArrayList<Object> present = new ArrayList<>();
             for (int j = 0; j < attrset.size(); j++) {
-                Object data = basetuple.dataAt(attrIndex[j]);
+                Object data = basetuple.getData(attrIndex[j]);
                 present.add(data);
             }
             Tuple outtuple = new Tuple(present);
-            outbatch.add(outtuple);
+            outbatch.addRecord(outtuple);
         }
         return outbatch;
     }
@@ -121,7 +121,7 @@ public class Project extends Operator {
         ArrayList<Attribute> newattr = new ArrayList<>();
         for (int i = 0; i < attrset.size(); ++i)
             newattr.add((Attribute) attrset.get(i).clone());
-        Project newproj = new Project(newbase, newattr, optype);
+        Project newproj = new Project(newbase, newattr, opType);
         Schema newSchema = newbase.getSchema().subSchema(newattr);
         newproj.setSchema(newSchema);
         return newproj;

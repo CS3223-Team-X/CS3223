@@ -4,9 +4,6 @@
 
 package qp.utils;
 
-import qp.utils.*;
-
-import java.util.*;
 import java.io.*;
 
 public class TupleReader {
@@ -99,7 +96,7 @@ public class TupleReader {
         }
 
         // Read the next tuple from our already cached page
-        peekTuple = inBatch.get(readCursor);
+        peekTuple = inBatch.getRecord(readCursor);
         readCursor++;
 
         // If reach end of the batch/page, reset the readCursor to prepare to read the next batch

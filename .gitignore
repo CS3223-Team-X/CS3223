@@ -1,0 +1,15 @@
+.idea/
+out/
+*.iml
+
+classes/
+
+*.md
+*.stat
+*.tbl
+*.txt
+
+*.in
+*.out
+
+!README.md

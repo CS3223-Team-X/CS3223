@@ -7,28 +7,27 @@ import qp.utils.Batch;
 import qp.utils.Schema;
 
 public class Operator {
-
-    int optype;     // Whether it is OpType.SELECT/ Optype.PROJECT/OpType.JOIN
-    Schema schema;  // Schema of the result at this operator
+    protected int opType;     // Whether it is OpType.SELECT/ Optype.PROJECT/OpType.JOIN
+    protected Schema schema;  // Schema of the result at this operator
 
     public Operator(int type) {
-        this.optype = type;
+        this.opType = type;
+    }
+
+    public int getOpType() {
+        return opType;
+    }
+
+    public void setOpType(int type) {
+        this.opType = type;
     }
 
     public Schema getSchema() {
         return schema;
     }
 
-    public void setSchema(Schema schm) {
-        this.schema = schm;
-    }
-
-    public int getOpType() {
-        return optype;
-    }
-
-    public void setOpType(int type) {
-        this.optype = type;
+    public void setSchema(Schema schema) {
+        this.schema = schema;
     }
 
     public boolean open() {
@@ -48,17 +47,6 @@ public class Operator {
     }
 
     public Object clone() {
-        return new Operator(optype);
+        return new Operator(opType);
     }
-
 }
-
-
-
-
-
-
-
-
-
-
