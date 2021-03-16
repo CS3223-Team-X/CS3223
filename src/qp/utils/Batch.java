@@ -77,4 +77,8 @@ public class Batch implements Serializable {
     public int size() {
         return tuples.size();
     }
+
+    public Tuple elementAt(int i) {
+        return tuples.get(i);
+    }
 }
