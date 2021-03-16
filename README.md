@@ -6,8 +6,9 @@ This project aims to let us gain a feel for how query processing works in a “r
 
 We saw how different query execution trees have different performance results, which motivates us to query optimization.  
 
-This simple query processing system uses “toy” data sets and an execution system that ignores many of the complex aspects of a real system.
-More information can be found [here](https://www.comp.nus.edu.sg/~tankl/cs3223/project.html).
+This simple query processing system uses “toy” data sets and an execution system that ignores many of the complex aspects of a real system.  
+
+More information about this assignment can be found [here](https://www.comp.nus.edu.sg/~tankl/cs3223/project.html).
 
 ## Our Implementation
 1. Block Nested Loop Join (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
@@ -25,10 +26,10 @@ More information can be found [here](https://www.comp.nus.edu.sg/~tankl/cs3223/p
 
 ## About
 This is our implementation for CS3223 Database Systems Implementation module. Our team consists of the following
-students currently studying at National University of Singapore.
-* Gabriel Yik
-* Kang Wangkai
-* Jovan Huang Tian Chun
+students from National University of Singapore, School of Computing.
+* [Gabriel Yik](https://github.com/GabrielYik)
+* [Kang Wangkai](https://github.com/Kangwkk)
+* [Jovan Huang Tian Chun](https://github.com/jovanhuang)
 
 
 ## Additional Features Implemented
