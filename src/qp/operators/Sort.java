@@ -21,7 +21,7 @@ public class Sort extends Operator {
     private final List<Integer> sortIndices;
     private final Comparator<Tuple> recordComparator;
     private final int bufferSize;
-    private final List<Batch> inputBuffer;
+    private List<Batch> inputBuffer;
 
     private ObjectInputStream sortedRecordsInputStream;
     private boolean isEndOfStream;
@@ -113,10 +113,15 @@ public class Sort extends Operator {
 
             int tupleIndex = 0;
             while (tupleIndex < records.size()) {
-                for (Batch page : inputBuffer) {
+                for (int j = 0; j < inputBuffer.size(); j++) {
+                    Batch page = inputBuffer.get(0);
                     for (int i = 0; i < page.size(); i++) {
                         Tuple record = records.get(tupleIndex++);
                         page.setRecord(record, i);
+                        if (tupleIndex >= records.size()) {
+                            inputBuffer = inputBuffer.subList(0, j + 1);
+                            break;
+                        }
                     }
                 }
             }
