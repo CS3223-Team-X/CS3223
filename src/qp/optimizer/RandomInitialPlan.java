@@ -72,6 +72,7 @@ public class RandomInitialPlan {
             createJoinOp();
         }
         createProjectOp();
+        createOrderByOperators();
 
         return root;
     }
@@ -193,6 +194,16 @@ public class RandomInitialPlan {
             Schema newSchema = base.getSchema().subSchema(projectlist);
             root.setSchema(newSchema);
         }
+    }
+
+    private void createOrderByOperators() {
+        if (sqlquery.getOrderByList().isEmpty()) {
+            return;
+        }
+
+        Sort.Direction sortDirection = sqlquery.isDesc() ? Sort.Direction.DSC : Sort.Direction.ASC;
+        Sort sortOperator = new Sort(root, orderByList, sortDirection, BufferManager.getNumBuffer());
+        root = new OrderBy(sortOperator);
     }
 
     private void modifyHashtable(Operator old, Operator newop) {
