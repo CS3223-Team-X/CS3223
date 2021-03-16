@@ -17,7 +17,8 @@ public class NestedJoin extends Join {
     private static int uniqueFileNumber = 0;         // To get unique filenum for this operation
     private int batchSize;                  // Number of tuples per out batch
 
-    private final int leftInputBufferSize;
+    protected final Join join;
+    protected final int leftInputBufferSize;
 
     private List<Integer> leftIndices;   // Indices of the join attributes in left table
     private List<Integer> rightIndices;  // Indices of the join attributes in right table
@@ -33,11 +34,12 @@ public class NestedJoin extends Join {
     boolean isLeftEndOfStream;                   // Whether end of stream (left table) is reached
     boolean isEndOfStreamForRight;                   // Whether end of stream (right table) is reached
 
-    public NestedJoin(Join jn, int leftInputBufferSize) {
-        super(jn.getLeft(), jn.getRight(), jn.getJoinConditions(), jn.getOpType());
-        schema = jn.getSchema();
-        joinType = jn.getJoinType();
-        numBuff = jn.getNumBuff();
+    public NestedJoin(Join join, int leftInputBufferSize) {
+        super(join.getLeft(), join.getRight(), join.getJoinConditions(), join.getOpType());
+        this.join = join;
+        schema = join.getSchema();
+        joinType = join.getJoinType();
+        numBuff = join.getNumBuff();
         this.leftInputBufferSize = leftInputBufferSize;
     }
 
@@ -46,6 +48,7 @@ public class NestedJoin extends Join {
      * * Materializes the right hand side into a file
      * * Opens the connections
      **/
+    @Override
     public boolean open() {
         /** select number of tuples per batch **/
         int tupleSize = schema.getTupleSize();
@@ -103,6 +106,7 @@ public class NestedJoin extends Join {
      * from input buffers selects the tuples satisfying join condition
      * * And returns a page of output tuples
      **/
+    @Override
     public Batch next() {
         int i, j;
         if (isLeftEndOfStream) {
@@ -204,9 +208,15 @@ public class NestedJoin extends Join {
     /**
      * Close the operator
      */
+    @Override
     public boolean close() {
         File f = new File(rfname);
         f.delete();
         return true;
+    }
+
+    @Override
+    public Object clone() {
+        return new NestedJoin((Join) join.clone(), leftInputBufferSize);
     }
 }

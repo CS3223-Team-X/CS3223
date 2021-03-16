@@ -19,4 +19,9 @@ public class BlockNestedJoin extends NestedJoin {
     public BlockNestedJoin(Join join, int blockSize) {
         super(join, blockSize);
     }
+
+    @Override
+    public Object clone() {
+        return new NestedJoin((Join) join.clone(), leftInputBufferSize);
+    }
 }

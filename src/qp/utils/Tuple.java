@@ -68,27 +68,29 @@ public class Tuple implements Serializable {
     /**
      * Compare two tuples in the same table on given attribute
      **/
-    public static int compareTuples(Tuple left, Tuple right, int index) {
+    public static int compare(Tuple left, Tuple right, int index) {
         return compareTuples(left, right, index, index);
+    }
+
+    public static int compare(Tuple t1, Tuple t2, List<Integer> sortIndices) {
+        for (int sortIndex : sortIndices) {
+            Object data1 = t1.getData(sortIndex);
+            Object data2 = t2.getData(sortIndex);
+            if (data1.equals(data2)) {
+                continue;
+            }
+            return compareByTypes(data1, data2);
+        }
+        return 0;
     }
 
     /**
      * Comparing tuples in different tables, used for join condition checking
      **/
     public static int compareTuples(Tuple left, Tuple right, int leftIndex, int rightIndex) {
-        Object leftdata = left.getData(leftIndex);
-        Object rightdata = right.getData(rightIndex);
-        if (leftdata instanceof Integer) {
-            return ((Integer) leftdata).compareTo((Integer) rightdata);
-        } else if (leftdata instanceof String) {
-            return ((String) leftdata).compareTo((String) rightdata);
-        } else if (leftdata instanceof Float) {
-            return ((Float) leftdata).compareTo((Float) rightdata);
-        } else {
-            System.out.println("Tuple: Unknown comparision of the tuples");
-            System.exit(1);
-            return 0;
-        }
+        Object leftData = left.getData(leftIndex);
+        Object rightData = right.getData(rightIndex);
+        return compareByTypes(leftData, rightData);
     }
 
     /**
@@ -96,26 +98,34 @@ public class Tuple implements Serializable {
      **/
     public static int compareTuples(Tuple left, Tuple right, ArrayList<Integer> leftIndex, ArrayList<Integer> rightIndex) {
         if (leftIndex.size() != rightIndex.size()) {
-            System.out.println("Tuple: Unknown comparision of the tuples");
+            System.out.println("Tuple: Unknown comparison of the tuples");
             System.exit(1);
             return 0;
         }
+
         for (int i = 0; i < leftIndex.size(); ++i) {
-            Object leftdata = left.getData(leftIndex.get(i));
-            Object rightdata = right.getData(rightIndex.get(i));
-            if (leftdata.equals(rightdata)) continue;
-            if (leftdata instanceof Integer) {
-                return ((Integer) leftdata).compareTo((Integer) rightdata);
-            } else if (leftdata instanceof String) {
-                return ((String) leftdata).compareTo((String) rightdata);
-            } else if (leftdata instanceof Float) {
-                return ((Float) leftdata).compareTo((Float) rightdata);
-            } else {
-                System.out.println("Tuple: Unknown comparision of the tuples");
-                System.exit(1);
-                return 0;
+            Object leftData = left.getData(leftIndex.get(i));
+            Object rightData = right.getData(rightIndex.get(i));
+            if (leftData.equals(rightData)) {
+                continue;
             }
+            return compareByTypes(leftData, rightData);
         }
+
         return 0;
+    }
+
+    private static int compareByTypes(Object data1, Object data2) {
+        if (data1 instanceof Integer) {
+            return ((Integer) data1).compareTo((Integer) data2);
+        } else if (data1 instanceof String) {
+            return ((String) data1).compareTo((String) data2);
+        } else if (data1 instanceof Float) {
+            return ((Float) data1).compareTo((Float) data2);
+        } else {
+            System.out.println("Tuple: Unknown comparison of tuples");
+            System.exit(1);
+            return 0;
+        }
     }
 }

@@ -20,4 +20,9 @@ public class PageNestedJoin extends NestedJoin {
     public PageNestedJoin(Join join) {
         super(join, LEFT_BUFFER_SIZE);
     }
+
+    @Override
+    public Object clone() {
+        return new NestedJoin((Join) join.clone(), LEFT_BUFFER_SIZE);
+    }
 }
