@@ -28,7 +28,7 @@ This is our implementation for CS3223 Database Systems Implementation module. Ou
 students currently studying at National University of Singapore.
 * Gabriel Yik
 * Kang Wangkai
-* Jovan Huang
+* Jovan Huang Tian Chun
 
 
 ## Additional Features Implemented
