@@ -114,7 +114,7 @@ public class Sort extends Operator {
             int tupleIndex = 0;
             while (tupleIndex < records.size()) {
                 for (int j = 0; j < inputBuffer.size(); j++) {
-                    Batch page = inputBuffer.get(0);
+                    Batch page = inputBuffer.get(j);
                     for (int i = 0; i < page.size(); i++) {
                         Tuple record = records.get(tupleIndex++);
                         page.setRecord(record, i);
