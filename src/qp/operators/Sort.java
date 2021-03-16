@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * The External Sort algorithm.
  */
-public class ExternalSort extends Operator {
+public class Sort extends Operator {
     private static int uniqueFileNumber = 0;
     private static final String FILE_PREFIX = "ext_sort";
     private static final String UNSORTED_FILE = "ext-sort_unsorted";
@@ -27,8 +27,8 @@ public class ExternalSort extends Operator {
      *
      * @param bufferSize The buffer size
      */
-    public ExternalSort(Operator base, int sortAttributeIndex, int bufferSize) {
-        super(OpType.SORT);
+    public Sort(Operator base, int sortAttributeIndex, int bufferSize) {
+        super(OperatorType.SORT);
         this.base = base;
         this.sortAttributeIndex = sortAttributeIndex;
         this.bufferSize = bufferSize;
@@ -235,5 +235,9 @@ public class ExternalSort extends Operator {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public enum Direction {
+        ASC, DSC
     }
 }

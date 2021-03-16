@@ -85,7 +85,7 @@ public class RandomInitialPlan {
         Scan tempop = null;
         for (int i = 0; i < numtab; ++i) {  // For each table in from list
             String tabname = fromlist.get(i);
-            Scan op1 = new Scan(tabname, OpType.SCAN);
+            Scan op1 = new Scan(tabname, OperatorType.SCAN);
             tempop = op1;
 
             /** Read the schema of the table from tablename.md file
@@ -128,7 +128,7 @@ public class RandomInitialPlan {
             if (cn.getOpType() == Condition.SELECT) {
                 String tabname = cn.getLhs().getTabName();
                 Operator tempop = (Operator) tab_op_hash.get(tabname);
-                op1 = new Select(tempop, cn, OpType.SELECT);
+                op1 = new Select(tempop, cn, OperatorType.SELECT);
                 /** set the schema same as base relation **/
                 op1.setSchema(tempop.getSchema());
                 modifyHashtable(tempop, op1);
@@ -163,7 +163,7 @@ public class RandomInitialPlan {
             String righttab = ((Attribute) cn.getRhs()).getTabName();
             Operator left = (Operator) tab_op_hash.get(lefttab);
             Operator right = (Operator) tab_op_hash.get(righttab);
-            jn = new Join(left, right, cn, OpType.JOIN);
+            jn = new Join(left, right, cn, OperatorType.JOIN);
             jn.setNodeIndex(jnnum);
             Schema newsche = left.getSchema().joinWith(right.getSchema());
             jn.setSchema(newsche);
@@ -189,7 +189,7 @@ public class RandomInitialPlan {
         if (projectlist == null)
             projectlist = new ArrayList<Attribute>();
         if (!projectlist.isEmpty()) {
-            root = new Project(base, projectlist, OpType.PROJECT);
+            root = new Project(base, projectlist, OperatorType.PROJECT);
             Schema newSchema = base.getSchema().subSchema(projectlist);
             root.setSchema(newSchema);
         }

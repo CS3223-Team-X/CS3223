@@ -82,7 +82,7 @@ public class Debug {
     public static void PPrint(Operator node) {
         int optype = node.getOpType();
 
-        if (optype == OpType.JOIN) {
+        if (optype == OperatorType.JOIN) {
             int exprtype = ((Join) node).getJoinType();
             switch (exprtype) {
                 case JoinType.PAGE_NESTED:
@@ -105,19 +105,19 @@ public class Debug {
             PPrint(((Join) node).getRight());
             System.out.print(")");
 
-        } else if (optype == OpType.SELECT) {
+        } else if (optype == OperatorType.SELECT) {
             System.out.print("Select(");
             PPrint(((Select) node).getBase());
             System.out.print("  '");
             PPrint(((Select) node).getCondition());
             System.out.print(")");
 
-        } else if (optype == OpType.PROJECT) {
+        } else if (optype == OperatorType.PROJECT) {
             System.out.print("Project(");
             PPrint(((Project) node).getBase());
             System.out.print(")");
 
-        } else if (optype == OpType.SCAN) {
+        } else if (optype == OperatorType.SCAN) {
             System.out.print(((Scan) node).getTabName());
         }
     }

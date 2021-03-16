@@ -4,7 +4,7 @@
 
 package qp.operators;
 
-public class OpType {
+public class OperatorType {
 
     public static final int SCAN = 0;
     public static final int SELECT = 1;

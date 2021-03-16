@@ -70,13 +70,13 @@ public class PlanCost {
      * Returns number of tuples in the root
      **/
     protected long calculateCost(Operator node) {
-        if (node.getOpType() == OpType.JOIN) {
+        if (node.getOpType() == OperatorType.JOIN) {
             return getStatistics((Join) node);
-        } else if (node.getOpType() == OpType.SELECT) {
+        } else if (node.getOpType() == OperatorType.SELECT) {
             return getStatistics((Select) node);
-        } else if (node.getOpType() == OpType.PROJECT) {
+        } else if (node.getOpType() == OperatorType.PROJECT) {
             return getStatistics((Project) node);
-        } else if (node.getOpType() == OpType.SCAN) {
+        } else if (node.getOpType() == OperatorType.SCAN) {
             return getStatistics((Scan) node);
         }
         System.out.println("operator is not supported");
