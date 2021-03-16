@@ -11,3 +11,5 @@ classes/
 
 *.in
 *.out
+
+!README.md
