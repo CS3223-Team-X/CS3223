@@ -47,38 +47,48 @@ public class RandomOptimizer {
      * * corresponding join operator implementation
      **/
     public static Operator makeExecPlan(Operator node) {
-        if (node.getOpType() == OperatorType.JOIN) {
-            Operator left = makeExecPlan(((Join) node).getLeft());
-            Operator right = makeExecPlan(((Join) node).getRight());
-            int joinType = ((Join) node).getJoinType();
-            int numbuff = BufferManager.getBuffersPerJoin();
-            switch (joinType) {
-                case JoinType.PAGE_NESTED:
-                    PageNestedJoin pnj = new PageNestedJoin((Join) node);
-                    pnj.setLeft(left);
-                    pnj.setRight(right);
-                    pnj.setNumBuff(numbuff);
-                    return pnj;
-                case JoinType.BLOCK_NESTED:
-                    int blockSize = BufferManager.getBuffersPerJoin() - 2;
-                    BlockNestedJoin bnj = new BlockNestedJoin((Join) node, blockSize);
-                    bnj.setLeft(left);
-                    bnj.setRight(right);
-                    bnj.setNumBuff(numbuff);
-                    return bnj;
-                default:
-                    return node;
+        switch (node.getOpType()) {
+            case OperatorType.SCAN:
+                return node;
+            case OperatorType.JOIN:
+                Operator left = makeExecPlan(((Join) node).getLeft());
+                Operator right = makeExecPlan(((Join) node).getRight());
+                int joinType = ((Join) node).getJoinType();
+                int numbuff = BufferManager.getBuffersPerJoin();
+                switch (joinType) {
+                    case JoinType.PAGE_NESTED:
+                        PageNestedJoin pnj = new PageNestedJoin((Join) node);
+                        pnj.setLeft(left);
+                        pnj.setRight(right);
+                        pnj.setNumBuff(numbuff);
+                        return pnj;
+                    case JoinType.BLOCK_NESTED:
+                        int blockSize = BufferManager.getBuffersPerJoin() - 2;
+                        BlockNestedJoin bnj = new BlockNestedJoin((Join) node, blockSize);
+                        bnj.setLeft(left);
+                        bnj.setRight(right);
+                        bnj.setNumBuff(numbuff);
+                        return bnj;
+                    default:
+                        return node;
+                }
+            case OperatorType.SELECT: {
+                Operator base = makeExecPlan(((Select) node).getBase());
+                ((Select) node).setBase(base);
+                return node;
             }
-        } else if (node.getOpType() == OperatorType.SELECT) {
-            Operator base = makeExecPlan(((Select) node).getBase());
-            ((Select) node).setBase(base);
-            return node;
-        } else if (node.getOpType() == OperatorType.PROJECT) {
-            Operator base = makeExecPlan(((Project) node).getBase());
-            ((Project) node).setBase(base);
-            return node;
-        } else {
-            return node;
+            case OperatorType.PROJECT: {
+                Operator base = makeExecPlan(((Project) node).getBase());
+                ((Project) node).setBase(base);
+                return node;
+            }
+            case OperatorType.ORDER: {
+                Operator base = makeExecPlan(((OrderBy) node).getBase());
+                ((OrderBy) node).setBase(base);
+                return node;
+            }
+            default:
+                throw new RuntimeException();
         }
     }
 
@@ -373,6 +383,8 @@ public class RandomOptimizer {
             return findNodeAt(((Select) node).getBase(), joinNum);
         } else if (node.getOpType() == OperatorType.PROJECT) {
             return findNodeAt(((Project) node).getBase(), joinNum);
+        } else if (node.getOpType() == OperatorType.ORDER) {
+            return findNodeAt(((OrderBy) node).getBase(), joinNum);
         } else {
             return null;
         }

@@ -69,7 +69,7 @@ public class PlanCost {
     /**
      * Returns number of tuples in the root
      **/
-    protected long calculateCost(Operator node) {
+    private long calculateCost(Operator node) {
         if (node.getOpType() == OperatorType.JOIN) {
             return getStatistics((Join) node);
         } else if (node.getOpType() == OperatorType.SELECT) {
@@ -78,6 +78,8 @@ public class PlanCost {
             return getStatistics((Project) node);
         } else if (node.getOpType() == OperatorType.SCAN) {
             return getStatistics((Scan) node);
+        } else if (node.getOpType() == OperatorType.ORDER) {
+            return getStatistics((OrderBy) node);
         }
         System.out.println("operator is not supported");
         isFeasible = false;
@@ -88,14 +90,14 @@ public class PlanCost {
      * Projection will not change any statistics
      * * No cost involved as done on the fly
      **/
-    protected long getStatistics(Project node) {
+    private long getStatistics(Project node) {
         return calculateCost(node.getBase());
     }
 
     /**
      * Calculates the statistics and cost of join operation
      **/
-    protected long getStatistics(Join node) {
+    private long getStatistics(Join node) {
         long lefttuples = calculateCost(node.getLeft());
         long righttuples = calculateCost(node.getRight());
 
@@ -162,7 +164,7 @@ public class PlanCost {
      * * And statistics about the attributes
      * * Selection is performed on the fly, so no cost involved
      **/
-    protected long getStatistics(Select node) {
+    private long getStatistics(Select node) {
         long intuples = calculateCost(node.getBase());
         if (!isFeasible) {
             System.out.println("notFeasible");
@@ -210,7 +212,7 @@ public class PlanCost {
      * * This table contains number of tuples in the table
      * * number of distinct values of each attribute
      **/
-    protected long getStatistics(Scan node) {
+    private long getStatistics(Scan node) {
         String tablename = node.getTabName();
         String filename = tablename + ".stat";
         Schema schema = node.getSchema();
@@ -270,6 +272,11 @@ public class PlanCost {
             System.exit(1);
         }
         return numtuples;
+    }
+
+    //TODO
+    private long getStatistics(OrderBy node) {
+        return calculateCost(node.getBase());
     }
 
 }

@@ -199,9 +199,11 @@ public class RandomInitialPlan {
             return;
         }
 
+        Operator base = root;
         Sort.Direction sortDirection = sqlquery.isDesc() ? Sort.Direction.DSC : Sort.Direction.ASC;
-        Sort sortOperator = new Sort(root, orderByList, sortDirection, BufferManager.getNumBuffer());
-        root = new OrderBy(sortOperator);
+        Sort sortOperator = new Sort(base, orderByList, sortDirection, BufferManager.getNumBuffer());
+        root = new OrderBy(base, sortOperator);
+        root.setSchema(base.getSchema());
     }
 
     private void modifyHashtable(Operator old, Operator newop) {
