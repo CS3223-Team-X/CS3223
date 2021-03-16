@@ -1,0 +1,3 @@
+SELECT *
+FROM BILL
+WHERE BILL.billid>"41",BILL.iid>"96"
