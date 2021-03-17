@@ -18,11 +18,15 @@ public class Distinct extends Operator {
     // this is the original list which Distinct will be used on.
     private Vector originalList;
 
+    // size of a batch
     private int batchSize;
+
     private Vector<Integer> attributeIndex = new Vector<>();
 
+    //boolean variable to check if end of line has been reached
     private boolean endOfLine = false;
 
+    // object containing sorted
     private Sort sorted;
 
     // Input Batch's current element's index
@@ -36,6 +40,7 @@ public class Distinct extends Operator {
     // The very last tuple output
     private Tuple lastOutTuple = null;
 
+    // this contains the number of buffers
     private int numOfBuffer;
 
     /**
@@ -61,8 +66,7 @@ public class Distinct extends Operator {
             System.out.println((Attribute) originalList.elementAt(i));
             attributeIndex.add(schema.indexOf(attribute));
         }
-        
-        /// TODO: 15-Mar-21 Create a sort class for this
+
         sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, numOfBuffer);
         return sorted.open();
     }

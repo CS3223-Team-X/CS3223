@@ -69,8 +69,13 @@ public class RandomInitialPlan {
         createJoinOperators();
         createProjectOperators();
         createOrderByOperators();
+        createDistinctOperators();
 
         return root;
+    }
+
+    private void createDistinctOperators() {
+        
     }
 
     /**
