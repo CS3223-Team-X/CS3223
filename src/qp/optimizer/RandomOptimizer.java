@@ -9,9 +9,10 @@ import qp.operators.joins.BlockNestedJoin;
 import qp.operators.joins.Join;
 import qp.operators.joins.JoinType;
 import qp.operators.joins.PageNestedJoin;
+import qp.operators.projects.Project;
 import qp.utils.Attribute;
 import qp.utils.Condition;
-import qp.utils.RandNumb;
+import qp.utils.RandomNumberGenerator;
 import qp.utils.SQLQuery;
 
 import java.util.List;
@@ -97,9 +98,9 @@ public class RandomOptimizer {
      **/
     protected Operator getNeighbor(Operator root) {
         // Randomly select a node to be altered to get the neighbour
-        int nodeNum = RandNumb.randInt(0, numJoin - 1);
+        int nodeNum = RandomNumberGenerator.randInt(0, numJoin - 1);
         // Randomly select type of alteration: Change Method/Associative/Commutative
-        int changeType = RandNumb.randInt(0, NUMCHOICES - 1);
+        int changeType = RandomNumberGenerator.randInt(0, NUMCHOICES - 1);
         Operator neighbor = null;
         switch (changeType) {
             case METHODCHOICE:   // Select a neighbour by changing the method type
@@ -121,7 +122,7 @@ public class RandomOptimizer {
     public Operator getOptimizedPlan() {
         /** get an initial plan for the given sql query **/
         RandomInitialPlan rip = new RandomInitialPlan(sqlquery);
-        numJoin = rip.getNumJoins();
+        numJoin = sqlquery.getJoinList().size();
         long MINCOST = Long.MAX_VALUE;
         Operator finalPlan = null;
 
@@ -223,9 +224,9 @@ public class RandomOptimizer {
             /** find the node that is to be altered **/
             Join node = (Join) findNodeAt(root, joinNum);
             int prevJoinMeth = node.getJoinType();
-            int joinMeth = RandNumb.randInt(0, numJMeth - 1);
+            int joinMeth = RandomNumberGenerator.randInt(0, numJMeth - 1);
             while (joinMeth == prevJoinMeth) {
-                joinMeth = RandNumb.randInt(0, numJMeth - 1);
+                joinMeth = RandomNumberGenerator.randInt(0, numJMeth - 1);
             }
             node.setJoinType(joinMeth);
         }
@@ -266,7 +267,7 @@ public class RandomOptimizer {
         } else if (left.getOpType() != OperatorType.JOIN && right.getOpType() == OperatorType.JOIN) {
             transformRighttoLeft(op, (Join) right);
         } else if (left.getOpType() == OperatorType.JOIN && right.getOpType() == OperatorType.JOIN) {
-            if (RandNumb.flipCoin())
+            if (RandomNumberGenerator.flipCoin())
                 transformLefttoRight(op, (Join) left);
             else
                 transformRighttoLeft(op, (Join) right);
@@ -295,7 +296,7 @@ public class RandomOptimizer {
             /** CASE 1 :  ( A X a1b1 B) X b4c4  C     =  A X a1b1 (B X b4c4 C)
              ** a1b1,  b4c4 are the join conditions at that join operator
              **/
-            temp = new Join(leftright, right, op.getCondition(), OperatorType.JOIN);
+            temp = new Join(leftright, right, op.getCondition());
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
             op.setLeft(leftleft);
@@ -309,7 +310,7 @@ public class RandomOptimizer {
             /**CASE 2:   ( A X a1b1 B) X a4c4  C     =  B X b1a1 (A X a4c4 C)
              ** a1b1,  a4c4 are the join conditions at that join operator
              **/
-            temp = new Join(leftleft, right, op.getCondition(), OperatorType.JOIN);
+            temp = new Join(leftleft, right, op.getCondition());
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
             op.setLeft(leftright);
@@ -335,7 +336,7 @@ public class RandomOptimizer {
             /** CASE 3 :  A X a1b1 (B X b4c4  C)     =  (A X a1b1 B ) X b4c4 C
              ** a1b1,  b4c4 are the join conditions at that join operator
              **/
-            temp = new Join(left, rightleft, op.getCondition(), OperatorType.JOIN);
+            temp = new Join(left, rightleft, op.getCondition());
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
             op.setLeft(temp);
@@ -348,7 +349,7 @@ public class RandomOptimizer {
             /** CASE 4 :  A X a1c1 (B X b4c4  C)     =  (A X a1c1 C ) X c4b4 B
              ** a1b1,  b4c4 are the join conditions at that join operator
              **/
-            temp = new Join(left, rightright, op.getCondition(), OperatorType.JOIN);
+            temp = new Join(left, rightright, op.getCondition());
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
             op.setLeft(temp);

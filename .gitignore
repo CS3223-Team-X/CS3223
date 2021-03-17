@@ -11,5 +11,6 @@ classes/
 
 *.in
 *.out
+testcases/output/
 
 !README.md

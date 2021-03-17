@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * A generic Nested Join algorithm with a variable-sized left input buffer.
  */
-public class NestedJoin extends Join {
+class NestedJoin extends Join {
     private static int uniqueFileNumber = 0;         // To get unique filenum for this operation
     private int batchSize;                  // Number of tuples per out batch
 
@@ -35,7 +35,7 @@ public class NestedJoin extends Join {
     boolean isEndOfStreamForRight;                   // Whether end of stream (right table) is reached
 
     public NestedJoin(Join join, int leftInputBufferSize) {
-        super(join.getLeft(), join.getRight(), join.getJoinConditions(), join.getOpType());
+        super(join.getLeft(), join.getRight(), join.getJoinConditions());
         this.join = join;
         schema = join.getSchema();
         joinType = join.getJoinType();

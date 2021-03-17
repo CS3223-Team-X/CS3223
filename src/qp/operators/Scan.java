@@ -27,8 +27,8 @@ public class Scan extends Operator {
     /**
      * Constructor - just save filename
      */
-    public Scan(String tabname, int type) {
-        super(type);
+    public Scan(String tabname) {
+        super(OperatorType.SCAN);
         this.tabname = tabname;
         filename = tabname + ".tbl";
     }
@@ -101,7 +101,7 @@ public class Scan extends Operator {
 
     public Object clone() {
         String newtab = tabname;
-        Scan newscan = new Scan(newtab, opType);
+        Scan newscan = new Scan(newtab);
         newscan.setSchema((Schema) schema.clone());
         return newscan;
     }

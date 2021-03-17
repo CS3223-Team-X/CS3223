@@ -6,6 +6,7 @@ package qp.operators;
 
 import qp.operators.joins.Join;
 import qp.operators.joins.JoinType;
+import qp.operators.projects.Project;
 import qp.utils.*;
 
 public class Debug {

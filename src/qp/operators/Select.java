@@ -24,8 +24,8 @@ public class Select extends Operator {
     /**
      * constructor
      **/
-    public Select(Operator base, Condition con, int type) {
-        super(type);
+    public Select(Operator base, Condition con) {
+        super(OperatorType.SELECT);
         this.base = base;
         this.con = con;
     }
@@ -222,7 +222,7 @@ public class Select extends Operator {
     public Object clone() {
         Operator newbase = (Operator) base.clone();
         Condition newcon = (Condition) con.clone();
-        Select newsel = new Select(newbase, newcon, opType);
+        Select newsel = new Select(newbase, newcon);
         newsel.setSchema((Schema) newbase.getSchema().clone());
         return newsel;
     }

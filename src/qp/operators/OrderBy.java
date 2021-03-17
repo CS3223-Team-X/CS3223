@@ -1,15 +1,25 @@
 package qp.operators;
 
+import qp.optimizer.BufferManager;
+import qp.utils.Attribute;
 import qp.utils.Batch;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class OrderBy extends Operator {
     private Operator base;
-    private final Sort sort;
 
-    public OrderBy(Operator base, Sort sort) {
+    private Sort sort;
+    private final List<Attribute> orderByAttributes;
+    private final Sort.Direction sortDirection;
+
+    public OrderBy(Operator base, List<Attribute> orderByAttributes, Sort.Direction sortDirection) {
         super(OperatorType.ORDER);
         this.base = base;
-        this.sort = sort;
+
+        this.orderByAttributes = orderByAttributes;
+        this.sortDirection = sortDirection;
     }
 
     public Operator getBase() {
@@ -22,6 +32,7 @@ public class OrderBy extends Operator {
 
     @Override
     public boolean open() {
+        sort = new Sort(base, orderByAttributes, sortDirection, BufferManager.getNumBuffer());
         return sort.open();
     }
 
@@ -37,6 +48,12 @@ public class OrderBy extends Operator {
 
     @Override
     public Object clone() {
-        return new OrderBy((Operator) base.clone(), (Sort) sort.clone());
+        List<Attribute> newOrderByAttributes = new ArrayList<>();
+        for (Attribute orderByAttribute : orderByAttributes) {
+            newOrderByAttributes.add((Attribute) orderByAttribute.clone());
+        }
+        OrderBy newOrderBy = new OrderBy((Operator) base.clone(), newOrderByAttributes, sortDirection);
+        newOrderBy.setSchema(base.getSchema());
+        return newOrderBy;
     }
 }
