@@ -31,8 +31,8 @@ public class Project extends Operator {
      **/
     int[] attrIndex;
 
-    public Project(Operator base, List<Attribute> as, int type) {
-        super(type);
+    public Project(Operator base, List<Attribute> projectedAttributes) {
+        super(OperatorType.PROJECT);
         this.base = base;
         this.attrset = as;
     }

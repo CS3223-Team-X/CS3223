@@ -1,7 +1,3 @@
-/**
- * This is main driver program of the query processor
- **/
-
 import qp.operators.Debug;
 import qp.operators.Operator;
 import qp.optimizer.BufferManager;
@@ -13,6 +9,9 @@ import qp.utils.*;
 
 import java.io.*;
 
+/**
+ * The driver program of the query processor.
+ */
 public class QueryMain {
 
     static PrintWriter out;

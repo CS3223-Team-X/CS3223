@@ -188,7 +188,7 @@ public class RandomInitialPlan {
         if (projectList == null)
             projectList = new ArrayList<>();
         if (!projectList.isEmpty()) {
-            root = new Project(base, projectList, OperatorType.PROJECT);
+            root = new Project(base, projectList);
             Schema newSchema = base.getSchema().subSchema(projectList);
             root.setSchema(newSchema);
         }
