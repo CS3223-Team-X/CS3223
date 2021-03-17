@@ -23,7 +23,7 @@ public class Distinct extends Operator {
 
     private boolean endOfLine = false;
 
-    private Sort sortedBase;
+    private Sort sorted;
 
     // Input Batch's current element's index
     private int inIndex;
@@ -44,7 +44,7 @@ public class Distinct extends Operator {
      * @param originalList - an original list in Vector in which Distinct will be used on to remove duplicates.
      */
     public Distinct(Operator baseOperator, Vector originalList) {
-        super(OpType.DISTINCT);
+        super(OperatorType.DISTINCT);
         this.originalList = originalList;
         this.baseOperator = baseOperator;
     }
@@ -63,8 +63,8 @@ public class Distinct extends Operator {
         }
         
         /// TODO: 15-Mar-21 Create a sort class for this
-        sortedBase = new Sort(baseOperator, originalList, numOfBuffer);
-        return sortedBase.open();
+        sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, numOfBuffer);
+        return sorted.open();
     }
 
     /**
@@ -79,7 +79,7 @@ public class Distinct extends Operator {
 
         // do this if input Batch is null
         if (inBatch == null) {
-            inBatch = sortedBase.next();
+            inBatch = sorted.next();
         }
 
         outBatch = new Batch(batchSize);
@@ -98,7 +98,7 @@ public class Distinct extends Operator {
             inIndex++;
 
             if (inIndex == batchSize) {
-                inBatch = sortedBase.next();
+                inBatch = sorted.next();
                 inIndex = 0;
             }
         }
@@ -107,7 +107,7 @@ public class Distinct extends Operator {
 
     private boolean checkTuplesNotEqual(Tuple tuple1, Tuple tuple2) {
         for (int index: attributeIndex) {
-            int result = Tuple.compareTuples(tuple1, tuple2, index);
+            int result = Tuple.compare(tuple1, tuple2, index);
             if (result != 0) {
                 return true;
             }
@@ -116,7 +116,7 @@ public class Distinct extends Operator {
     }
 
     public boolean close() {
-        return sortedBase.close();
+        return sorted.close();
     }
 
     public int getNumOfBuffer() {
