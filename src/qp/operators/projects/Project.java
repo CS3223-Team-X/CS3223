@@ -20,6 +20,7 @@ public class Project extends Operator {
 
     private boolean requiresAggregation;
     private final List<Object> aggregators;
+    private boolean areAggregatesReturned;
 
     private Batch inputPage;
 
@@ -27,13 +28,13 @@ public class Project extends Operator {
         super(OperatorType.PROJECT);
         this.base = base;
 
-        numTuplesPerPage = Batch.getPageSize() / schema.getTupleSize();
+        numTuplesPerPage = Batch.getPageSize() / base.getSchema().getTupleSize();
 
         this.projectedAttributes = projectedAttributes;
         this.projectedIndices = computeProjectedIndices(this.projectedAttributes);
 
-        requiresAggregation = false;
         aggregators = initAggregators();
+        areAggregatesReturned = false;
     }
 
     private int[] computeProjectedIndices(List<Attribute> projectedAttributes) {
@@ -44,9 +45,8 @@ public class Project extends Operator {
                 projectedIndices[i] = base.getSchema().indexOf(projectedAttribute.getBaseAttribute());
             } else { //TODO do more thorough check
                 requiresAggregation = true;
-                projectedIndices[i] = base.getSchema().indexOf(projectedAttribute);
+                projectedIndices[i] = base.getSchema().indexOf(projectedAttribute.getBaseAttribute());
             }
-            projectedIndices[i] = base.getSchema().indexOf(projectedAttributes.get(i));
         }
         return projectedIndices;
     }
@@ -85,6 +85,10 @@ public class Project extends Operator {
     public Batch next() {
         Batch outputPage = new Batch(numTuplesPerPage);
         if (requiresAggregation) {
+            if (areAggregatesReturned) {
+                return null;
+            }
+
             while ((inputPage = base.next()) != null) {
                 for (Tuple record : inputPage.getRecords()) {
                     for (int i = 0; i < projectedAttributes.size(); i++) {
@@ -95,6 +99,9 @@ public class Project extends Operator {
                                 if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
                                     throw new RuntimeException();
                                 }
+                                if (TypeChecker.isType(projectedDatum, Integer.class)) {
+                                    projectedDatum = (float) (Integer) projectedDatum;
+                                }
                                 MaxAggregator maxAggregator = (MaxAggregator) aggregators.get(aggregateType - 1);
                                 maxAggregator.include((float) projectedDatum);
                                 break;
@@ -102,12 +109,18 @@ public class Project extends Operator {
                                 if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
                                     throw new RuntimeException();
                                 }
+                                if (TypeChecker.isType(projectedDatum, Integer.class)) {
+                                    projectedDatum = (float) (Integer) projectedDatum;
+                                }
                                 MinAggregator minAggregator = (MinAggregator) aggregators.get(aggregateType - 1);
                                 minAggregator.include((float) projectedDatum);
                                 break;
                             case Attribute.SUM:
                                 if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
                                     throw new RuntimeException();
+                                }
+                                if (TypeChecker.isType(projectedDatum, Integer.class)) {
+                                    projectedDatum = (float) (Integer) projectedDatum;
                                 }
                                 SumAggregator sumAggregator = (SumAggregator) aggregators.get(aggregateType - 1);
                                 sumAggregator.include((float) projectedDatum);
@@ -119,6 +132,9 @@ public class Project extends Operator {
                             case Attribute.AVG:
                                 if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
                                     throw new RuntimeException();
+                                }
+                                if (TypeChecker.isType(projectedDatum, Integer.class)) {
+                                    projectedDatum = (float) (Integer) projectedDatum;
                                 }
                                 AvgAggregator avgAggregator = (AvgAggregator) aggregators.get(aggregateType - 1);
                                 avgAggregator.include((float) projectedDatum);
@@ -157,6 +173,7 @@ public class Project extends Operator {
 
             Tuple projectedRecord = new Tuple(aggregates);
             outputPage.addRecord(projectedRecord);
+            areAggregatesReturned = true;
 
         } else {
             inputPage = base.next();
@@ -186,6 +203,7 @@ public class Project extends Operator {
         return true;
     }
 
+    @Override
     public Object clone() {
         Operator newbase = (Operator) base.clone();
         ArrayList<Attribute> newattr = new ArrayList<>();
