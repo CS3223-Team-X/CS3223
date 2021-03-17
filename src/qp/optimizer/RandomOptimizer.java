@@ -9,6 +9,7 @@ import qp.operators.joins.BlockNestedJoin;
 import qp.operators.joins.Join;
 import qp.operators.joins.JoinType;
 import qp.operators.joins.PageNestedJoin;
+import qp.operators.joins.SortMergeJoin;
 import qp.operators.projects.Project;
 import qp.utils.Attribute;
 import qp.utils.Condition;
@@ -70,6 +71,12 @@ public class RandomOptimizer {
                         bnj.setRight(right);
                         bnj.setNumBuff(numbuff);
                         return bnj;
+                    case JoinType.SORT_MERGE:
+                        SortMergeJoin smj = new SortMergeJoin((Join) node);
+                        smj.setLeft(left);
+                        smj.setRight(right);
+                        smj.setNumBuff(numbuff);
+                        return smj;
                     default:
                         return node;
                 }

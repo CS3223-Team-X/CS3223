@@ -47,7 +47,7 @@ public class SortMergeJoin extends Join {
     private int rightBufferSize;
 
     public SortMergeJoin(Join join) {
-        super(join.getLeft(), join.getRight(), join.getCondition(), join.getOpType());
+        super(join.getLeft(), join.getRight(), join.getJoinConditions());
         this.join = join;
         schema = join.getSchema();
         joinType = join.getJoinType();
