@@ -5,6 +5,7 @@
 package qp.operators.joins;
 
 import qp.operators.Operator;
+import qp.operators.OperatorType;
 import qp.utils.Condition;
 import qp.utils.Schema;
 
@@ -21,23 +22,23 @@ public class Join extends Operator {
     protected int joinType;                        // JoinType.NestedJoin/SortMerge/HashJoin
     protected int nodeIndex;                       // Each join node is given a number
 
-    public Join(Operator left, Operator right, int type) {
-        super(type);
+    public Join(Operator left, Operator right) {
+        super(OperatorType.JOIN);
         this.left = left;
         this.right = right;
         joinConditions = new ArrayList<>();
     }
 
-    public Join(Operator left, Operator right, Condition condition, int type) {
-        super(type);
+    public Join(Operator left, Operator right, Condition condition) {
+        super(OperatorType.JOIN);
         this.left = left;
         this.right = right;
         joinConditions = new ArrayList<>();
         joinConditions.add(condition);
     }
 
-    public Join(Operator left, Operator right, List<Condition> joinConditions, int type) {
-        super(type);
+    public Join(Operator left, Operator right, List<Condition> joinConditions) {
+        super(OperatorType.JOIN);
         this.left = left;
         this.right = right;
         this.joinConditions = joinConditions;
@@ -113,7 +114,7 @@ public class Join extends Operator {
             newJoinConditions.add((Condition) joinCondition.clone());
         }
 
-        Join newJoin = new Join(newLeft, newRight, newJoinConditions, opType);
+        Join newJoin = new Join(newLeft, newRight, newJoinConditions);
         Schema newSchema = newLeft.getSchema().joinWith(newRight.getSchema());
         newJoin.setSchema(newSchema);
         newJoin.setJoinType(joinType);

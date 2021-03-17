@@ -7,7 +7,7 @@ package qp.utils;
 
 import java.lang.Math;
 
-public class RandNumb {
+public class RandomNumberGenerator {
 
     /** Get a random number between a and b **/
     public static int randInt(int a, int b) {

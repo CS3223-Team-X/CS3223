@@ -1,7 +1,3 @@
-/**
- * prepares a random initial plan for the given SQL query
- **/
-
 package qp.optimizer;
 
 import qp.operators.*;
@@ -12,47 +8,44 @@ import qp.utils.*;
 
 import java.io.FileInputStream;
 import java.io.ObjectInputStream;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
-public class RandomInitialPlan {
+/**
+ * A generator of a random initial plan for a query.
+ */
+class RandomInitialPlan {
     private final SQLQuery sqlquery;
 
-    private List<Attribute> projectList;
-    private final List<String> fromList;
-    private final List<Condition> selectionList;   // List of select conditons
-    private final List<Condition> joinList;        // List of join conditions
-    private final List<Attribute> groupByList;
-    private final List<Attribute> orderByList;
-    private final int numJoin;            // Number of joins in this query
-    HashMap<String, Operator> tab_op_hash;  // Table name to the Operator
-    Operator root;          // Root of the query plan tree
+    private final List<Attribute> projectedAttributes;
+    private final List<String> fromTables;
+    private final List<Condition> selectionConditions;
+    private final List<Condition> joinConditions;
+    private final List<Attribute> orderByAttributes;
+
+    /**
+     * Contains mappings between a table to its corresponding
+     * {@code Scan} operator.
+     */
+    private final Map<String, Operator> tableToOperator;
+
+    private Operator queryPlanRoot;
 
     public RandomInitialPlan(SQLQuery sqlQuery) {
         this.sqlquery = sqlQuery;
-        projectList = sqlQuery.getProjectList();
-        fromList = sqlQuery.getFromList();
-        selectionList = sqlQuery.getSelectionList();
-        joinList = sqlQuery.getJoinList();
-        groupByList = sqlQuery.getGroupByList();
-        orderByList = sqlQuery.getOrderByList();
-        numJoin = joinList.size();
+
+        projectedAttributes = sqlQuery.getProjectList();
+        fromTables = sqlQuery.getFromList();
+        selectionConditions = sqlQuery.getSelectionList();
+        joinConditions = sqlQuery.getJoinList();
+        orderByAttributes = sqlQuery.getOrderByList();
+
+        tableToOperator = new HashMap<>();
     }
 
     /**
-     * number of join conditions
-     **/
-    public int getNumJoins() {
-        return numJoin;
-    }
-
-    /**
-     * prepare initial plan for the query
+     * Prepare an initial plan for the query
      **/
     public Operator prepareInitialPlan() {
-
         if (sqlquery.isDistinct()) {
             System.err.println("Distinct is not implemented.");
             System.exit(1);
@@ -63,154 +56,158 @@ public class RandomInitialPlan {
             System.exit(1);
         }
 
-        tab_op_hash = new HashMap<>();
         createScanOperators();
         createSelectOperators();
         createJoinOperators();
         createProjectOperators();
         createOrderByOperators();
 
-        return root;
+        return queryPlanRoot;
     }
 
     /**
-     * Create Scan Operator for each of the table
-     * * mentioned in from list
-     **/
+     * Creates a {@code Scan} operator for each table specified
+     * in the FROM clause.
+     */
     public void createScanOperators() {
-        int numtab = fromList.size();
-        Scan tempop = null;
-        for (int i = 0; i < numtab; ++i) {  // For each table in from list
-            String tabname = fromList.get(i);
-            Scan op1 = new Scan(tabname, OperatorType.SCAN);
-            tempop = op1;
+        if (fromTables.isEmpty()) {
+            // should not reach here
+            throw new RuntimeException();
+        }
 
-            /** Read the schema of the table from tablename.md file
-             ** md stands for metadata
-             **/
-            String filename = tabname + ".md";
+        // will never remain null
+        Scan lastScan = null;
+        for (String fromTable : fromTables) {
+            Scan scan = new Scan(fromTable);
+            lastScan = scan;
+
+            String tableMetadata = fromTable + ".md";
             try {
-                ObjectInputStream _if = new ObjectInputStream(new FileInputStream(filename));
-                Schema schm = (Schema) _if.readObject();
-                op1.setSchema(schm);
-                _if.close();
+                ObjectInputStream in = new ObjectInputStream(new FileInputStream(tableMetadata));
+                Schema schema = (Schema) in.readObject();
+                scan.setSchema(schema);
+                in.close();
             } catch (Exception e) {
-                System.err.println("RandomInitialPlan:Error reading Schema of the table " + filename);
-                System.err.println(e);
+                System.err.println("RandomInitialPlan:Error reading Schema of the table " + tableMetadata);
+                e.printStackTrace();
                 System.exit(1);
             }
-            tab_op_hash.put(tabname, op1);
+            tableToOperator.put(fromTable, scan);
         }
 
-        // 12 July 2003 (whtok)
-        // To handle the case where there is no where clause
-        // selectionlist is empty, hence we set the root to be
-        // the scan operator. the projectOp would be put on top of
-        // this later in CreateProjectOp
-        if (selectionList.size() == 0) {
-            root = tempop;
-            return;
+        // for the case where where all attributes are to be selected i.e., Select *
+        if (selectionConditions.isEmpty()) {
+            queryPlanRoot = lastScan;
         }
-
     }
 
     /**
-     * Create Selection Operators for each of the
-     * * selection condition mentioned in Condition list
-     **/
+     * Creates a {@code Selection} operator for each condition,
+     * between an attribute and a string, specified in the WHERE clause.
+     */
     public void createSelectOperators() {
-        Select op1 = null;
-        for (int j = 0; j < selectionList.size(); ++j) {
-            Condition cn = selectionList.get(j);
-            if (cn.getOpType() == Condition.SELECT) {
-                String tabname = cn.getLhs().getTabName();
-                Operator tempop = (Operator) tab_op_hash.get(tabname);
-                op1 = new Select(tempop, cn, OperatorType.SELECT);
-                /** set the schema same as base relation **/
-                op1.setSchema(tempop.getSchema());
-                modifyHashtable(tempop, op1);
-            }
+        if (selectionConditions.isEmpty()) {
+            return;
         }
 
-        /** The last selection is the root of the plan tre
-         ** constructed thus far
-         **/
-        if (selectionList.size() != 0)
-            root = op1;
+        // will never remain null
+        Select lastSelect = null;
+        for (Condition selectionCondition : selectionConditions) {
+            if (selectionCondition.getOpType() == Condition.SELECT) {
+                String table = selectionCondition.getLhs().getTabName();
+                Operator operatorOfTable = tableToOperator.get(table);
+                lastSelect = new Select(operatorOfTable, selectionCondition);
+                lastSelect.setSchema(operatorOfTable.getSchema());
+                modifyHashtable(operatorOfTable, lastSelect);
+            }
+        }
+        queryPlanRoot = lastSelect;
     }
 
     /**
-     * create join operators
-     **/
+     * Creates a {@code Join} operator for each condition,
+     * between two attributes, specified in the WHERE clause.
+     */
     public void createJoinOperators() {
-        if (numJoin == 0) {
+        int numJoins = joinConditions.size();
+        if (numJoins == 0) {
             return;
         }
 
-        BitSet bitCList = new BitSet(numJoin);
-        int jnnum = RandNumb.randInt(0, numJoin - 1);
-        Join jn = null;
+        BitSet joinConditionIndices = new BitSet(numJoins);
+        int joinConditionIndex = RandomNumberGenerator.randInt(0, numJoins - 1);
+        // will never remain null
+        Join join = null;
 
-        /** Repeat until all the join conditions are considered **/
-        while (bitCList.cardinality() != numJoin) {
-            /** If this condition is already consider chose
-             ** another join condition
-             **/
-            while (bitCList.get(jnnum)) {
-                jnnum = RandNumb.randInt(0, numJoin - 1);
+        // repeat until all join conditions are considered
+        while (joinConditionIndices.cardinality() != numJoins) {
+            // choose an unconsidered join condition at random
+            while (joinConditionIndices.get(joinConditionIndex)) {
+                joinConditionIndex = RandomNumberGenerator.randInt(0, numJoins - 1);
             }
-            Condition cn = (Condition) joinList.get(jnnum);
-            String lefttab = cn.getLhs().getTabName();
-            String righttab = ((Attribute) cn.getRhs()).getTabName();
-            Operator left = (Operator) tab_op_hash.get(lefttab);
-            Operator right = (Operator) tab_op_hash.get(righttab);
-            jn = new Join(left, right, cn, OperatorType.JOIN);
-            jn.setNodeIndex(jnnum);
-            Schema newsche = left.getSchema().joinWith(right.getSchema());
-            jn.setSchema(newsche);
+            Condition joinCondition = joinConditions.get(joinConditionIndex);
+            String leftTable = joinCondition.getLhs().getTabName();
+            String rightTable = ((Attribute) joinCondition.getRhs()).getTabName();
+            Operator leftTableScan = tableToOperator.get(leftTable);
+            Operator rightTableScan = tableToOperator.get(rightTable);
+            join = new Join(leftTableScan, rightTableScan, joinCondition);
+            join.setNodeIndex(joinConditionIndex);
+            Schema joinedSchema = leftTableScan.getSchema().joinWith(rightTableScan.getSchema());
+            join.setSchema(joinedSchema);
 
-            /** randomly select a join type**/
-            int numJMeth = JoinType.numJoinTypes();
-            int joinMeth = RandNumb.randInt(0, numJMeth - 1);
-            jn.setJoinType(joinMeth);
-            modifyHashtable(left, jn);
-            modifyHashtable(right, jn);
-            bitCList.set(jnnum);
+            // choose a join type at random
+            int numJoinTypes = JoinType.numJoinTypes();
+            int joinType = RandomNumberGenerator.randInt(0, numJoinTypes - 2);
+            join.setJoinType(joinType);
+
+            modifyHashtable(leftTableScan, join);
+            modifyHashtable(rightTableScan, join);
+
+            joinConditionIndices.set(joinConditionIndex);
         }
 
-        /** The last join operation is the root for the
-         ** constructed till now
-         **/
-        root = jn;
+        queryPlanRoot = join;
     }
 
+    /**
+     * Creates a {@code Project} operator for each attribute
+     * specified in the SELECT clause.
+     */
     public void createProjectOperators() {
-        Operator base = root;
-        if (projectList == null)
-            projectList = new ArrayList<>();
-        if (!projectList.isEmpty()) {
-            root = new Project(base, projectList);
-            Schema newSchema = base.getSchema().subSchema(projectList);
-            root.setSchema(newSchema);
-        }
-    }
-
-    private void createOrderByOperators() {
-        if (sqlquery.getOrderByList().isEmpty()) {
+        if (projectedAttributes.isEmpty()) {
             return;
         }
 
-        Operator base = root;
-        Sort.Direction sortDirection = sqlquery.isDesc() ? Sort.Direction.DSC : Sort.Direction.ASC;
-        Sort sortOperator = new Sort(base, orderByList, sortDirection, BufferManager.getNumBuffer());
-        root = new OrderBy(base, sortOperator);
-        root.setSchema(base.getSchema());
+        Schema projectedSchema = queryPlanRoot.getSchema().subSchema(projectedAttributes);
+        Project project = new Project(queryPlanRoot, projectedAttributes);
+        project.setSchema(projectedSchema);
+
+        queryPlanRoot = project;
     }
 
-    private void modifyHashtable(Operator old, Operator newop) {
-        for (HashMap.Entry<String, Operator> entry : tab_op_hash.entrySet()) {
-            if (entry.getValue().equals(old)) {
-                entry.setValue(newop);
+    /**
+     * Creates a {@code OrderBy} operator for each attribute
+     * specified in the ORDERBY clause.
+     */
+    private void createOrderByOperators() {
+        if (orderByAttributes.isEmpty()) {
+            return;
+        }
+
+        Sort.Direction sortDirection = sqlquery.isDesc() ? Sort.Direction.DSC : Sort.Direction.ASC;
+        Sort sortOperator = new Sort(queryPlanRoot, orderByAttributes, sortDirection, BufferManager.getNumBuffer());
+        sortOperator.setSchema(queryPlanRoot.getSchema());
+
+        OrderBy orderBy = new OrderBy(queryPlanRoot, sortOperator);
+        orderBy.setSchema(queryPlanRoot.getSchema());
+
+        queryPlanRoot = orderBy;
+    }
+
+    private void modifyHashtable(Operator oldOperator, Operator newOperator) {
+        for (Map.Entry<String, Operator> entry : tableToOperator.entrySet()) {
+            if (entry.getValue().equals(oldOperator)) {
+                entry.setValue(newOperator);
             }
         }
     }
