@@ -131,6 +131,12 @@ public class Debug {
                 PPrint(((OrderBy) node).getBase());
                 System.out.println(")");
                 break;
+
+            case OperatorType.DISTINCT:
+                System.out.println("Distinct(");
+                PPrint(((Distinct) node).getBase());
+                System.out.println(")");
+                break;
             default:
                 throw new RuntimeException();
         }

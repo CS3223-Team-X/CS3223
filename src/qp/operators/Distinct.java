@@ -1,10 +1,12 @@
 package qp.operators;
 
+import qp.optimizer.BufferManager;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
 import qp.utils.Tuple;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -16,7 +18,7 @@ public class Distinct extends Operator {
     private Operator baseOperator;
 
     // this is the original list which Distinct will be used on.
-    private Vector originalList;
+    private List<Attribute> originalList;
 
     // size of a batch
     private int batchSize;
@@ -48,13 +50,14 @@ public class Distinct extends Operator {
      * @param baseOperator - self-explanatory
      * @param originalList - an original list in Vector in which Distinct will be used on to remove duplicates.
      */
-    public Distinct(Operator baseOperator, Vector originalList) {
+    public Distinct(Operator baseOperator, List<Attribute> originalList) {
         super(OperatorType.DISTINCT);
         this.originalList = originalList;
         this.baseOperator = baseOperator;
     }
 
-    public boolean Open() {
+    @Override
+    public boolean open() {
         /** set number of tuples per batch **/
         int tupleSize = schema.getTupleSize();
         int pageSize = Batch.getPageSize();
@@ -62,19 +65,21 @@ public class Distinct extends Operator {
         int lengthOfOriginalList = originalList.size();
 
         for (int i = 0; i < lengthOfOriginalList; i++) {
-            Attribute attribute = (Attribute) originalList.elementAt(i);
-            System.out.println((Attribute) originalList.elementAt(i));
+            Attribute attribute = (Attribute) originalList.get(i);
+            System.out.println((Attribute) originalList.get(i));
             attributeIndex.add(schema.indexOf(attribute));
         }
 
-        sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, numOfBuffer);
-        return sorted.open();
+//        sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, BufferManager.getNumBuffer());
+//        return sorted.open();
+        return baseOperator.open();
     }
 
     /**
      * Read next tuple from operator
      * @return outBatch
      */
+    @Override
     public Batch next() {
         if (endOfLine) {
             close();
@@ -83,7 +88,8 @@ public class Distinct extends Operator {
 
         // do this if input Batch is null
         if (inBatch == null) {
-            inBatch = sorted.next();
+//            inBatch = sorted.next();
+            inBatch = baseOperator.next();
         }
 
         outBatch = new Batch(batchSize);
@@ -102,7 +108,8 @@ public class Distinct extends Operator {
             inIndex++;
 
             if (inIndex == batchSize) {
-                inBatch = sorted.next();
+//                inBatch = sorted.next();
+                inBatch = baseOperator.next();
                 inIndex = 0;
             }
         }
@@ -119,32 +126,25 @@ public class Distinct extends Operator {
         return false;
     }
 
+    @Override
     public boolean close() {
-        return sorted.close();
+//        return sorted.close();
+        return baseOperator.close();
     }
 
-    public int getNumOfBuffer() {
-        return numOfBuffer;
-    }
-
-    public void setNumOfBuffer(int numOfBuffer) {
-        this.numOfBuffer = numOfBuffer;
-    }
-
-    public Operator getBaseOperator() {
+    public Operator getBase() {
         return baseOperator;
     }
 
-    public void setBaseOperator(Operator baseOperator) {
+    public void setBase(Operator baseOperator) {
         this.baseOperator = baseOperator;
     }
 
-    // adapted from Project.java's implementation
     public Object clone() {
         Operator newBaseOperator = (Operator) baseOperator.clone();
         Vector<Attribute> newProjectList = new Vector<>();
-        for (int i = 0; i < originalList.size(); i++) {
-            Attribute attribute = (Attribute) ((Attribute) originalList.elementAt(i)).clone();
+        for (Attribute value : originalList) {
+            Attribute attribute = (Attribute) value.clone();
             newProjectList.add(attribute);
         }
 
