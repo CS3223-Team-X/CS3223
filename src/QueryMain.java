@@ -8,6 +8,7 @@ import qp.parser.parser;
 import qp.utils.*;
 
 import java.io.*;
+import java.util.List;
 
 /**
  * The driver program of the query processor.
@@ -28,6 +29,8 @@ public class QueryMain {
 
         SQLQuery sqlquery = getSQLQuery(args[0]);
         configureBufferManager(sqlquery.getNumJoin(), args, in);
+
+        verifySufficientPageSize(sqlquery.getFromList(), Batch.getPageSize());
 
         Operator root = getQueryPlan(sqlquery);
         printFinalPlan(root, args, in);
@@ -105,6 +108,26 @@ public class QueryMain {
         if (numJoin > 0 && numBuff < 3) {
             System.out.println("Minimum 3 buffers are required per join operator ");
             System.exit(1);
+        }
+    }
+
+    private static void verifySufficientPageSize(List<String> tables, int pageSize) {
+        int cumulativeRecordSize = 0;
+        for (String table : tables) {
+            try (BufferedReader file = new BufferedReader(new FileReader(table + ".det"))){
+                file.readLine();
+                int recordSize = Integer.parseInt(file.readLine().trim());
+                cumulativeRecordSize += recordSize;
+            } catch(IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+        if (cumulativeRecordSize > pageSize) {
+            System.out.println("Page size of " + pageSize + " is insufficient for cumulative record size of " + cumulativeRecordSize);
+            System.exit(1);
+        } else {
+            System.out.println("Page size of " + pageSize + " and cumulative record size of " + cumulativeRecordSize);
         }
     }
 
