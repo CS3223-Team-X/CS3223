@@ -1,40 +1,62 @@
-/**
- * To projec out the required attributes from the result
- **/
-
 package qp.operators;
 
-import qp.utils.Attribute;
-import qp.utils.Batch;
-import qp.utils.Schema;
-import qp.utils.Tuple;
+import qp.operators.aggregate.*;
+import qp.utils.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The projector of required attributes.
+ */
 public class Project extends Operator {
+    private Operator base;                 // Base table to project
+    private final int numTuplesPerPage;
 
-    Operator base;                 // Base table to project
-    List<Attribute> attrset;  // Set of attributes to project
-    int batchsize;                 // Number of tuples per outbatch
+    private final List<Attribute> projectedAttributes;
+    private final int[] projectedIndices;
 
-    /**
-     * The following fields are requied during execution
-     * * of the Project Operator
-     **/
-    Batch inbatch;
-    Batch outbatch;
+    private boolean requiresAggregation;
+    private final List<Object> aggregators;
 
-    /**
-     * index of the attributes in the base operator
-     * * that are to be projected
-     **/
-    int[] attrIndex;
+    private Batch inputPage;
 
     public Project(Operator base, List<Attribute> projectedAttributes) {
         super(OperatorType.PROJECT);
         this.base = base;
-        this.attrset = as;
+
+        numTuplesPerPage = Batch.getPageSize() / schema.getTupleSize();
+
+        this.projectedAttributes = projectedAttributes;
+        this.projectedIndices = computeProjectedIndices(this.projectedAttributes);
+
+        requiresAggregation = false;
+        aggregators = initAggregators();
+    }
+
+    private int[] computeProjectedIndices(List<Attribute> projectedAttributes) {
+        int[] projectedIndices = new int[projectedAttributes.size()];
+        for (int i = 0; i < projectedAttributes.size(); i++) {
+            Attribute projectedAttribute = projectedAttributes.get(i);
+            if (projectedAttribute.getAggType() == Attribute.NONE) {
+                projectedIndices[i] = base.schema.indexOf(projectedAttribute.getBaseAttribute());
+            } else { //TODO do more thorough check
+                requiresAggregation = true;
+                projectedIndices[i] = base.schema.indexOf(projectedAttribute);
+            }
+            projectedIndices[i] = base.schema.indexOf(projectedAttributes.get(i));
+        }
+        return projectedIndices;
+    }
+
+    private List<Object> initAggregators() {
+        return List.of(
+                new MaxAggregator(),
+                new MinAggregator(),
+                new SumAggregator(),
+                new CountAggregator(),
+                new AvgAggregator()
+        );
     }
 
     public Operator getBase() {
@@ -46,73 +68,118 @@ public class Project extends Operator {
     }
 
     public List<Attribute> getProjAttr() {
-        return attrset;
+        return projectedAttributes;
     }
 
-
-    /**
-     * Opens the connection to the base operator
-     * * Also figures out what are the columns to be
-     * * projected from the base operator
-     **/
+    @Override
     public boolean open() {
-        /** set number of tuples per batch **/
-        int tuplesize = schema.getTupleSize();
-        batchsize = Batch.getPageSize() / tuplesize;
-
-        if (!base.open()) return false;
-
-        /** The following loop finds the index of the columns that
-         ** are required from the base operator
-         **/
-        Schema baseSchema = base.getSchema();
-        attrIndex = new int[attrset.size()];
-        for (int i = 0; i < attrset.size(); ++i) {
-            Attribute attr = attrset.get(i);
-
-            if (attr.getAggType() != Attribute.NONE) {
-                System.err.println("Aggragation is not implemented.");
-                System.exit(1);
-            }
-
-            int index = baseSchema.indexOf(attr.getBaseAttribute());
-            attrIndex[i] = index;
-        }
-        return true;
+        return base.open();
     }
 
     /**
      * Read next tuple from operator
      */
+    @Override
     public Batch next() {
-        outbatch = new Batch(batchsize);
-        /** all the tuples in the inbuffer goes to the output buffer **/
-        inbatch = base.next();
+        Batch outputPage = new Batch(numTuplesPerPage);
+        if (requiresAggregation) {
+            while ((inputPage = base.next()) != null) {
+                for (Tuple record : inputPage.getRecords()) {
+                    for (int i = 0; i < projectedAttributes.size(); i++) {
+                        int aggregateType = projectedAttributes.get(i).getAggType();
+                        Object projectedDatum = record.getData(projectedIndices[i]);
+                        switch (aggregateType) {
+                            case Attribute.MAX:
+                                if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
+                                    throw new RuntimeException();
+                                }
+                                MaxAggregator maxAggregator = (MaxAggregator) aggregators.get(aggregateType - 1);
+                                maxAggregator.include((float) projectedDatum);
+                                break;
+                            case Attribute.MIN:
+                                if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
+                                    throw new RuntimeException();
+                                }
+                                MinAggregator minAggregator = (MinAggregator) aggregators.get(aggregateType - 1);
+                                minAggregator.include((float) projectedDatum);
+                                break;
+                            case Attribute.SUM:
+                                if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
+                                    throw new RuntimeException();
+                                }
+                                SumAggregator sumAggregator = (SumAggregator) aggregators.get(aggregateType - 1);
+                                sumAggregator.include((float) projectedDatum);
+                                break;
+                            case Attribute.COUNT:
+                                CountAggregator countAggregator = (CountAggregator) aggregators.get(aggregateType - 1);
+                                countAggregator.include(CountAggregator.DONT_CARE);
+                                break;
+                            case Attribute.AVG:
+                                if (!TypeChecker.isType(projectedDatum, Integer.class, Float.class)) {
+                                    throw new RuntimeException();
+                                }
+                                AvgAggregator avgAggregator = (AvgAggregator) aggregators.get(aggregateType - 1);
+                                avgAggregator.include((float) projectedDatum);
+                                break;
+                            default:
+                                throw new RuntimeException();
+                        }
 
-        if (inbatch == null) {
-            return null;
-        }
-
-        for (int i = 0; i < inbatch.size(); i++) {
-            Tuple basetuple = inbatch.getRecord(i);
-            //Debug.PPrint(basetuple);
-            //System.out.println();
-            ArrayList<Object> present = new ArrayList<>();
-            for (int j = 0; j < attrset.size(); j++) {
-                Object data = basetuple.getData(attrIndex[j]);
-                present.add(data);
+                    }
+                }
             }
-            Tuple outtuple = new Tuple(present);
-            outbatch.addRecord(outtuple);
+
+            List<Object> aggregates = new ArrayList<>();
+            for (int i = 0; i < projectedIndices.length; i++) {
+                int aggregateType = projectedAttributes.get(i).getAggType();
+                switch (aggregateType) {
+                    case Attribute.MAX:
+                        aggregates.add(((MaxAggregator) aggregators.get(aggregateType - 1)).get());
+                        break;
+                    case Attribute.MIN:
+                        aggregates.add(((MinAggregator) aggregators.get(aggregateType - 1)).get());
+                        break;
+                    case Attribute.SUM:
+                        aggregates.add(((SumAggregator) aggregators.get(aggregateType - 1)).get());
+                        break;
+                    case Attribute.COUNT:
+                        aggregates.add(((CountAggregator) aggregators.get(aggregateType - 1)).get());
+                        break;
+                    case Attribute.AVG:
+                        aggregates.add(((AvgAggregator) aggregators.get(aggregateType - 1)).get());
+                        break;
+                    default:
+                        throw new RuntimeException();
+                }
+            }
+
+            Tuple projectedRecord = new Tuple(aggregates);
+            outputPage.addRecord(projectedRecord);
+
+        } else {
+            inputPage = base.next();
+            if (inputPage == null) {
+                return null;
+            }
+
+            for (int i = 0; i < inputPage.size(); i++) {
+                Tuple record = inputPage.getRecord(i);
+                List<Object> projectedData = new ArrayList<>();
+                for (int j = 0; j < projectedAttributes.size(); j++) {
+                    Object projectedDatum = record.getData(projectedIndices[j]);
+                    projectedData.add(projectedDatum);
+                }
+                Tuple projectedRecord = new Tuple(projectedData);
+                outputPage.addRecord(projectedRecord);
+            }
         }
-        return outbatch;
+
+        return outputPage;
     }
 
-    /**
-     * Close the operator
-     */
+    @Override
     public boolean close() {
-        inbatch = null;
+        inputPage = null;
         base.close();
         return true;
     }
@@ -120,9 +187,9 @@ public class Project extends Operator {
     public Object clone() {
         Operator newbase = (Operator) base.clone();
         ArrayList<Attribute> newattr = new ArrayList<>();
-        for (int i = 0; i < attrset.size(); ++i)
-            newattr.add((Attribute) attrset.get(i).clone());
-        Project newproj = new Project(newbase, newattr, opType);
+        for (int i = 0; i < projectedAttributes.size(); ++i)
+            newattr.add((Attribute) projectedAttributes.get(i).clone());
+        Project newproj = new Project(newbase, newattr);
         Schema newSchema = newbase.getSchema().subSchema(newattr);
         newproj.setSchema(newSchema);
         return newproj;
