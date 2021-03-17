@@ -195,10 +195,8 @@ class RandomInitialPlan {
         }
 
         Sort.Direction sortDirection = sqlquery.isDesc() ? Sort.Direction.DSC : Sort.Direction.ASC;
-        Sort sortOperator = new Sort(queryPlanRoot, orderByAttributes, sortDirection, BufferManager.getNumBuffer());
-        sortOperator.setSchema(queryPlanRoot.getSchema());
 
-        OrderBy orderBy = new OrderBy(queryPlanRoot, sortOperator);
+        OrderBy orderBy = new OrderBy(queryPlanRoot, orderByAttributes, sortDirection);
         orderBy.setSchema(queryPlanRoot.getSchema());
 
         queryPlanRoot = orderBy;
