@@ -150,25 +150,39 @@ public class Project extends Operator {
             List<Object> aggregates = new ArrayList<>();
             for (int i = 0; i < projectedIndices.length; i++) {
                 int aggregateType = projectedAttributes.get(i).getAggType();
+                Object aggregate;
                 switch (aggregateType) {
                     case Attribute.MAX:
-                        aggregates.add(((MaxAggregator) aggregators.get(aggregateType - 1)).get());
+                        if (projectedAttributes.get(i).getType() == Attribute.INT) {
+                            aggregate = ((MaxAggregator) aggregators.get(aggregateType - 1)).get();
+                        } else {
+                            aggregate = (((MaxAggregator) aggregators.get(aggregateType - 1)).get()).intValue();
+                        }
                         break;
                     case Attribute.MIN:
-                        aggregates.add(((MinAggregator) aggregators.get(aggregateType - 1)).get());
+                        if (projectedAttributes.get(i).getType() == Attribute.INT) {
+                            aggregate = ((MinAggregator) aggregators.get(aggregateType - 1)).get();
+                        } else {
+                            aggregate = (((MinAggregator) aggregators.get(aggregateType - 1)).get()).intValue();
+                        }
                         break;
                     case Attribute.SUM:
-                        aggregates.add(((SumAggregator) aggregators.get(aggregateType - 1)).get());
+                        if (projectedAttributes.get(i).getType() == Attribute.INT) {
+                            aggregate = ((SumAggregator) aggregators.get(aggregateType - 1)).get();
+                        } else {
+                            aggregate = (((SumAggregator) aggregators.get(aggregateType - 1)).get()).intValue();
+                        }
                         break;
                     case Attribute.COUNT:
-                        aggregates.add(((CountAggregator) aggregators.get(aggregateType - 1)).get());
+                        aggregate = ((CountAggregator) aggregators.get(aggregateType -1)).get();
                         break;
                     case Attribute.AVG:
-                        aggregates.add(((AvgAggregator) aggregators.get(aggregateType - 1)).get());
+                        aggregate = (((AvgAggregator) aggregators.get(aggregateType - 1)).get());
                         break;
                     default:
                         throw new RuntimeException();
                 }
+                aggregates.add(aggregate);
             }
 
             Tuple projectedRecord = new Tuple(aggregates);
