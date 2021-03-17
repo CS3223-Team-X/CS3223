@@ -1,5 +1,6 @@
-package qp.operators;
+package qp.operators.joins;
 
+import qp.operators.Buffer;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Condition;
@@ -10,18 +11,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents the Page Nested Join algorithm.
+ * A generic Nested Join algorithm with a variable-sized left input buffer.
  */
-public class PageNestedJoin extends Join {
+public class NestedJoin extends Join {
     private static int uniqueFileNumber = 0;         // To get unique filenum for this operation
     private int batchSize;                  // Number of tuples per out batch
+
+    protected final Join join;
+    protected final int leftInputBufferSize;
 
     private List<Integer> leftIndices;   // Indices of the join attributes in left table
     private List<Integer> rightIndices;  // Indices of the join attributes in right table
 
     private String rfname;                  // The file name where the right table is materialized
     private Batch outputBuffer;                 // Buffer page for output
-    private Batch leftInputBuffer;                // Buffer page for left input stream
+    private Buffer leftInputBuffer;                // Buffer page for left input stream
     private Batch rightInputBuffer;               // Buffer page for right input stream
     private ObjectInputStream in;           // File pointer to the right hand materialized file
 
@@ -30,11 +34,13 @@ public class PageNestedJoin extends Join {
     boolean isLeftEndOfStream;                   // Whether end of stream (left table) is reached
     boolean isEndOfStreamForRight;                   // Whether end of stream (right table) is reached
 
-    public PageNestedJoin(Join jn) {
-        super(jn.getLeft(), jn.getRight(), jn.getJoinConditions(), jn.getOpType());
-        schema = jn.getSchema();
-        joinType = jn.getJoinType();
-        numBuff = jn.getNumBuff();
+    public NestedJoin(Join join, int leftInputBufferSize) {
+        super(join.getLeft(), join.getRight(), join.getJoinConditions(), join.getOpType());
+        this.join = join;
+        schema = join.getSchema();
+        joinType = join.getJoinType();
+        numBuff = join.getNumBuff();
+        this.leftInputBufferSize = leftInputBufferSize;
     }
 
     /**
@@ -42,6 +48,7 @@ public class PageNestedJoin extends Join {
      * * Materializes the right hand side into a file
      * * Opens the connections
      **/
+    @Override
     public boolean open() {
         /** select number of tuples per batch **/
         int tupleSize = schema.getTupleSize();
@@ -99,6 +106,7 @@ public class PageNestedJoin extends Join {
      * from input buffers selects the tuples satisfying join condition
      * * And returns a page of output tuples
      **/
+    @Override
     public Batch next() {
         int i, j;
         if (isLeftEndOfStream) {
@@ -108,7 +116,7 @@ public class PageNestedJoin extends Join {
         while (!outputBuffer.isFull()) {
             if (leftCursor == CURSOR_START && isEndOfStreamForRight) {
                 /** new left page is to be fetched**/
-                leftInputBuffer = left.next();
+                leftInputBuffer = addLeftBuffer();
                 if (leftInputBuffer == null) {
                     isLeftEndOfStream = true;
                     return outputBuffer;
@@ -178,12 +186,37 @@ public class PageNestedJoin extends Join {
         return outputBuffer;
     }
 
+    private Buffer addLeftBuffer() {
+        Buffer leftBuffer = new Buffer(leftInputBufferSize);
+        while (true) {
+            Batch batch = left.next();
+            if (leftBuffer.isEmpty() && batch == null) {
+                leftBuffer = null;
+                break;
+            }
+            if (batch == null) {
+                break;
+            }
+            if (!leftBuffer.hasCapacity()) {
+                break;
+            }
+            leftBuffer.addPage(batch);
+        }
+        return leftBuffer;
+    }
+
     /**
      * Close the operator
      */
+    @Override
     public boolean close() {
         File f = new File(rfname);
         f.delete();
         return true;
+    }
+
+    @Override
+    public Object clone() {
+        return new NestedJoin((Join) join.clone(), leftInputBufferSize);
     }
 }

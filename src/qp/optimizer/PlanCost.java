@@ -6,6 +6,9 @@
 package qp.optimizer;
 
 import qp.operators.*;
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
+import qp.operators.projects.Project;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Condition;
@@ -67,15 +70,17 @@ public class PlanCost {
     /**
      * Returns number of tuples in the root
      **/
-    protected long calculateCost(Operator node) {
-        if (node.getOpType() == OpType.JOIN) {
+    private long calculateCost(Operator node) {
+        if (node.getOpType() == OperatorType.JOIN) {
             return getStatistics((Join) node);
-        } else if (node.getOpType() == OpType.SELECT) {
+        } else if (node.getOpType() == OperatorType.SELECT) {
             return getStatistics((Select) node);
-        } else if (node.getOpType() == OpType.PROJECT) {
+        } else if (node.getOpType() == OperatorType.PROJECT) {
             return getStatistics((Project) node);
-        } else if (node.getOpType() == OpType.SCAN) {
+        } else if (node.getOpType() == OperatorType.SCAN) {
             return getStatistics((Scan) node);
+        } else if (node.getOpType() == OperatorType.ORDER) {
+            return getStatistics((OrderBy) node);
         }
         System.out.println("operator is not supported");
         isFeasible = false;
@@ -86,14 +91,14 @@ public class PlanCost {
      * Projection will not change any statistics
      * * No cost involved as done on the fly
      **/
-    protected long getStatistics(Project node) {
+    private long getStatistics(Project node) {
         return calculateCost(node.getBase());
     }
 
     /**
      * Calculates the statistics and cost of join operation
      **/
-    protected long getStatistics(Join node) {
+    private long getStatistics(Join node) {
         long lefttuples = calculateCost(node.getLeft());
         long righttuples = calculateCost(node.getRight());
 
@@ -106,14 +111,14 @@ public class PlanCost {
 
         /** Get size of the tuple in output & correspondigly calculate
          ** buffer capacity, i.e., number of tuples per page **/
-        long tuplesize = node.getSchema().getTupleSize();
-        long outcapacity = Math.max(1, Batch.getPageSize() / tuplesize);
-        long leftuplesize = leftschema.getTupleSize();
-        long leftcapacity = Math.max(1, Batch.getPageSize() / leftuplesize);
-        long righttuplesize = rightschema.getTupleSize();
-        long rightcapacity = Math.max(1, Batch.getPageSize() / righttuplesize);
-        long leftpages = (long) Math.ceil(((double) lefttuples) / (double) leftcapacity);
-        long rightpages = (long) Math.ceil(((double) righttuples) / (double) rightcapacity);
+        long tupleSize = node.getSchema().getTupleSize();
+        long outcapacity = Math.max(1, Batch.getPageSize() / tupleSize);
+        long leftTupleSize = leftschema.getTupleSize();
+        long leftCapacity = Math.max(1, Batch.getPageSize() / leftTupleSize);
+        long rightTupleSize = rightschema.getTupleSize();
+        long rightCapacity = Math.max(1, Batch.getPageSize() / rightTupleSize);
+        long leftPages = (long) Math.ceil(((double) lefttuples) / (double) leftCapacity);
+        long rightPages = (long) Math.ceil(((double) righttuples) / (double) rightCapacity);
 
         double tuples = (double) lefttuples * righttuples;
         for (Condition con : node.getJoinConditions()) {
@@ -137,17 +142,20 @@ public class PlanCost {
         /** Calculate the cost of the operation **/
         int joinType = node.getJoinType();
         long numbuff = BufferManager.getBuffersPerJoin();
-        long joincost;
+        long joinCost;
 
         switch (joinType) {
             case JoinType.PAGE_NESTED:
-                joincost = leftpages * rightpages;
+                joinCost = leftPages * rightPages;
+                break;
+            case JoinType.BLOCK_NESTED:
+                joinCost = leftPages + (long) Math.ceil(leftPages/ (double) (BufferManager.getBuffersPerJoin() - 2) ) * rightPages;
                 break;
             default:
                 System.out.println("join type is not supported");
                 return 0;
         }
-        cost = cost + joincost;
+        cost = cost + joinCost;
 
         return outtuples;
     }
@@ -157,7 +165,7 @@ public class PlanCost {
      * * And statistics about the attributes
      * * Selection is performed on the fly, so no cost involved
      **/
-    protected long getStatistics(Select node) {
+    private long getStatistics(Select node) {
         long intuples = calculateCost(node.getBase());
         if (!isFeasible) {
             System.out.println("notFeasible");
@@ -205,7 +213,7 @@ public class PlanCost {
      * * This table contains number of tuples in the table
      * * number of distinct values of each attribute
      **/
-    protected long getStatistics(Scan node) {
+    private long getStatistics(Scan node) {
         String tablename = node.getTabName();
         String filename = tablename + ".stat";
         Schema schema = node.getSchema();
@@ -265,6 +273,11 @@ public class PlanCost {
             System.exit(1);
         }
         return numtuples;
+    }
+
+    //TODO
+    private long getStatistics(OrderBy node) {
+        return calculateCost(node.getBase());
     }
 
 }

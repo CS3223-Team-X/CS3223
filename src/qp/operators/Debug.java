@@ -4,6 +4,9 @@
 
 package qp.operators;
 
+import qp.operators.joins.Join;
+import qp.operators.joins.JoinType;
+import qp.operators.projects.Project;
 import qp.utils.*;
 
 public class Debug {
@@ -80,43 +83,56 @@ public class Debug {
     public static void PPrint(Operator node) {
         int optype = node.getOpType();
 
-        if (optype == OpType.JOIN) {
-            int exprtype = ((Join) node).getJoinType();
-            switch (exprtype) {
-                case JoinType.PAGE_NESTED:
-                    System.out.print("NestedJoin(");
-                    break;
-                case JoinType.BLOCK_NESTED:
-                    System.out.print("BlockNested(");
-                    break;
-                case JoinType.SORT_MERGE:
-                    System.out.print("SortMerge(");
-                    break;
-                case JoinType.HASH:
-                    System.out.print("HashJoin(");
-                    break;
-            }
-            PPrint(((Join) node).getLeft());
-            System.out.print("  [");
-            PPrint(((Join) node).getCondition());
-            System.out.print("]  ");
-            PPrint(((Join) node).getRight());
-            System.out.print(")");
+        switch (optype) {
+            case OperatorType.JOIN:
+                int exprtype = ((Join) node).getJoinType();
+                switch (exprtype) {
+                    case JoinType.PAGE_NESTED:
+                        System.out.print("PageJoin(");
+                        break;
+                    case JoinType.BLOCK_NESTED:
+                        System.out.print("BlockNested(");
+                        break;
+                    case JoinType.SORT_MERGE:
+                        System.out.print("SortMerge(");
+                        break;
+                    case JoinType.HASH:
+                        System.out.print("HashJoin(");
+                        break;
+                }
+                PPrint(((Join) node).getLeft());
+                System.out.print("  [");
+                PPrint(((Join) node).getCondition());
+                System.out.print("]  ");
+                PPrint(((Join) node).getRight());
+                System.out.print(")");
 
-        } else if (optype == OpType.SELECT) {
-            System.out.print("Select(");
-            PPrint(((Select) node).getBase());
-            System.out.print("  '");
-            PPrint(((Select) node).getCondition());
-            System.out.print(")");
+                break;
+            case OperatorType.SELECT:
+                System.out.print("Select(");
+                PPrint(((Select) node).getBase());
+                System.out.print("  '");
+                PPrint(((Select) node).getCondition());
+                System.out.print(")");
 
-        } else if (optype == OpType.PROJECT) {
-            System.out.print("Project(");
-            PPrint(((Project) node).getBase());
-            System.out.print(")");
+                break;
+            case OperatorType.PROJECT:
+                System.out.print("Project(");
+                PPrint(((Project) node).getBase());
+                System.out.print(")");
 
-        } else if (optype == OpType.SCAN) {
-            System.out.print(((Scan) node).getTabName());
+                break;
+            case OperatorType.SCAN:
+                System.out.print(((Scan) node).getTabName());
+                break;
+
+            case OperatorType.ORDER:
+                System.out.println("Sort by(");
+                PPrint(((OrderBy) node).getBase());
+                System.out.println(")");
+                break;
+            default:
+                throw new RuntimeException();
         }
     }
 
@@ -125,8 +141,8 @@ public class Debug {
      * print a tuple
      **/
     public static void PPrint(Tuple t) {
-        for (int i = 0; i < t.data().size(); i++) {
-            Object data = t.dataAt(i);
+        for (int i = 0; i < t.getData().size(); i++) {
+            Object data = t.getData(i);
             if (data instanceof Integer) {
                 System.out.print((Integer) data + "\t");
             } else if (data instanceof Float) {

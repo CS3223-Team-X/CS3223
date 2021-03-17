@@ -1,4 +1,5 @@
 .idea/
+out/
 *.iml
 
 classes/
@@ -7,3 +8,8 @@ classes/
 *.stat
 *.tbl
 *.txt
+
+*.in
+*.out
+
+!README.md
