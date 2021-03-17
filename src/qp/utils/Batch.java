@@ -95,7 +95,12 @@ public class Batch implements Serializable {
         return tuples.size();
     }
 
+    public Tuple elementAt(int i) {
+        return tuples.get(i);
+    }
+
     public void sort(Comparator<Tuple> comparator) {
         tuples.sort(comparator);
+
     }
 }
