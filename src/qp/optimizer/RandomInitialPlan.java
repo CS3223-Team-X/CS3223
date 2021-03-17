@@ -7,6 +7,7 @@ package qp.optimizer;
 import qp.operators.*;
 import qp.operators.joins.Join;
 import qp.operators.joins.JoinType;
+import qp.operators.projects.Project;
 import qp.utils.*;
 
 import java.io.FileInputStream;

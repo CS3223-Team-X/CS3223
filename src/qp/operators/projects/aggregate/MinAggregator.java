@@ -1,4 +1,4 @@
-package qp.operators.aggregate;
+package qp.operators.projects.aggregate;
 
 public class MinAggregator implements Aggregator<Float> {
     private Float minValue;

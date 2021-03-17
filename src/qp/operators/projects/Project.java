@@ -1,6 +1,8 @@
-package qp.operators;
+package qp.operators.projects;
 
-import qp.operators.aggregate.*;
+import qp.operators.Operator;
+import qp.operators.OperatorType;
+import qp.operators.projects.aggregate.*;
 import qp.utils.*;
 
 import java.util.ArrayList;
@@ -39,12 +41,12 @@ public class Project extends Operator {
         for (int i = 0; i < projectedAttributes.size(); i++) {
             Attribute projectedAttribute = projectedAttributes.get(i);
             if (projectedAttribute.getAggType() == Attribute.NONE) {
-                projectedIndices[i] = base.schema.indexOf(projectedAttribute.getBaseAttribute());
+                projectedIndices[i] = base.getSchema().indexOf(projectedAttribute.getBaseAttribute());
             } else { //TODO do more thorough check
                 requiresAggregation = true;
-                projectedIndices[i] = base.schema.indexOf(projectedAttribute);
+                projectedIndices[i] = base.getSchema().indexOf(projectedAttribute);
             }
-            projectedIndices[i] = base.schema.indexOf(projectedAttributes.get(i));
+            projectedIndices[i] = base.getSchema().indexOf(projectedAttributes.get(i));
         }
         return projectedIndices;
     }

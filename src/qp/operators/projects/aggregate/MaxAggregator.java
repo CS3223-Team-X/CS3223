@@ -1,4 +1,4 @@
-package qp.operators.aggregate;
+package qp.operators.projects.aggregate;
 
 public class MaxAggregator implements Aggregator<Float> {
     private Float maxValue;
