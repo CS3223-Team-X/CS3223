@@ -1,7 +1,6 @@
 package qp.operators.aggregate;
 
 import qp.operators.Operator;
-import qp.operators.OperatorType;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
@@ -9,20 +8,19 @@ import qp.utils.Tuple;
 
 import java.util.List;
 
-public class Min extends Operator {
-    private final Operator base;
+public class Min extends Aggregate {
     private final Attribute targetAttribute;
     private final int targetIndex;
 
-    private Batch pageWithMinRecord;
+    private final Batch pageWithMinRecord;
     private boolean isReturned;
 
     public Min(Operator base, Attribute targetAttribute) {
-        super(OperatorType.AGGREGATE);
-        this.base = base;
+        super(base, AggregateType.MIN);
         this.targetAttribute = targetAttribute;
         targetIndex = schema.indexOf(this.targetAttribute);
 
+        pageWithMinRecord = new Batch(1);
         isReturned = false;
     }
 
@@ -47,7 +45,6 @@ public class Min extends Operator {
             }
         } while ((page = base.next()) != null);
 
-        pageWithMinRecord = new Batch(1);
         pageWithMinRecord.addRecord(minRecord);
 
         return true;

@@ -1,7 +1,6 @@
 package qp.operators.aggregate;
 
 import qp.operators.Operator;
-import qp.operators.OperatorType;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
@@ -9,20 +8,19 @@ import qp.utils.Tuple;
 
 import java.util.List;
 
-public class Max extends Operator {
-    private final Operator base;
+public class Max extends Aggregate {
     private final Attribute targetAttribute;
     private final int targetIndex;
 
-    private Batch pageWithMaxRecord;
+    private final Batch pageWithMaxRecord;
     private boolean isReturned;
 
     public Max(Operator base, Attribute targetAttribute) {
-        super(OperatorType.AGGREGATE);
-        this.base = base;
+        super(base, AggregateType.MAX);
         this.targetAttribute = targetAttribute;
         targetIndex = schema.indexOf(this.targetAttribute);
 
+        pageWithMaxRecord = new Batch(1);
         isReturned = false;
     }
 
@@ -47,7 +45,6 @@ public class Max extends Operator {
             }
         } while ((page = base.next()) != null);
 
-        pageWithMaxRecord = new Batch(1);
         pageWithMaxRecord.addRecord(maxRecord);
 
         return true;
