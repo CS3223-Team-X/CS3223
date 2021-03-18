@@ -285,7 +285,7 @@ public class Sort extends Operator {
 
         try {
             return (Batch) sortedRecordsInputStream.readObject();
-        } catch (EOFException e) {
+        } catch (EOFException | NullPointerException e) {
             isEndOfStream = true;
             return null;
             // do not read any more
