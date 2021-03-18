@@ -41,6 +41,8 @@ public class SortMergeJoin extends Join {
     
     boolean isPrevTuplesMatch = false;
 
+    boolean retriveNewLeftPage;
+
     Sort sortedLeft;
     Sort sortedRight;
 
@@ -77,6 +79,7 @@ public class SortMergeJoin extends Join {
 
         /** initialize the cursors of input buffers **/
         leftCursor = CURSOR_START;
+        retriveNewLeftPage = true;
 
         if (!left.open() || !right.open()){
             System.out.println("SortMergeJoin: Error opening left or right table");
@@ -86,13 +89,15 @@ public class SortMergeJoin extends Join {
         isLeftEndOfStream = false;
         isRightEndOfStream = false;
 
-        sortedLeft = new Sort(left, leftAttrs, Sort.Direction.ASC, numBuff);
-        sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
 
-        if (!sortedLeft.open() || !sortedRight.open()){
-            System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
-			return false;
-		}
+
+        // sortedLeft = new Sort(left, leftAttrs, Sort.Direction.ASC, numBuff);
+        // sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
+
+        // if (!sortedLeft.open() || !sortedRight.open()){
+        //     System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
+		// 	return false;
+		// }
 
         /** If the right operator is not a base table then
          ** Materialize the intermediate result from right
@@ -103,7 +108,7 @@ public class SortMergeJoin extends Join {
         rightPages = new ArrayList<>();
 
         try {
-            while ((rightpage = sortedRight.next()) != null) {
+            while ((rightpage = right.next()) != null) {
                 String rfname = "SMJtemp-" + fileIndex;
                 File file = new File(rfname);
                 ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
@@ -133,7 +138,6 @@ public class SortMergeJoin extends Join {
 
     @Override
     public Batch next() {
-        System.out.println("SortMergeJoin: start next");
         if (isLeftEndOfStream || isRightEndOfStream) {
             System.out.println("SortMergeJoin: return null");
             return null;
@@ -142,13 +146,14 @@ public class SortMergeJoin extends Join {
         outputBuffer = new Batch(batchSize);
 
         while(!outputBuffer.isFull()) {
-            System.out.println("SortMergeJoin: start iteration");
             if (isLeftEndOfStream || isRightEndOfStream) {
                 break;
             }
-            if (leftCursor == CURSOR_START) {
-                leftInputBatch = sortedLeft.next();
-                if (leftInputBatch == null) {
+            if (leftCursor == CURSOR_START && retriveNewLeftPage) {
+                System.out.println("SortMergeJoin: retrive new left page");
+                leftInputBatch = left.next();
+                retriveNewLeftPage = false;
+                if (leftInputBatch == null || leftInputBatch.isEmpty()) {
                     System.out.println("SortMergeJoin: sorted left table run out");
                     isLeftEndOfStream = true;
                     break;
@@ -183,9 +188,11 @@ public class SortMergeJoin extends Join {
             if (compareRes < 0) {
                 // advance left cursor
                 System.out.println("SortMergeJoin: advance left cursor");
+                System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 if (leftCursor == leftInputBatch.size() - 1) {
                     // retrieve the next page of left table
                     leftCursor = CURSOR_START;
+                    retriveNewLeftPage = true;
                 } else {
                     leftCursor++;
                 }
@@ -199,6 +206,7 @@ public class SortMergeJoin extends Join {
             } else if (compareRes > 0) {
                 // advance right cursor
                 System.out.println("SortMergeJoin: advance right cursor");
+                System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 rightTupleIndex++;
                 
                 // reset the boolean flag
@@ -242,7 +250,7 @@ public class SortMergeJoin extends Join {
             System.out.println("SortMergeJoin: retrive new right buffer");
             rightBatchIndexOffset = batchIndex;
             int absoluteTupleIndex = offset;
-            System.out.println("SortMergeJoin: absolute tuple index: " + absoluteBatchIndex);
+            System.out.println("SortMergeJoin: absolute tuple index: " + absoluteTupleIndex);
             return rightInputBuffer.getRecord(absoluteTupleIndex);
         }
     }
@@ -283,10 +291,10 @@ public class SortMergeJoin extends Join {
      */
     @Override
     public boolean close() {
-        // left.close();
-        // right.close();
-        // sortedLeft.close();
-        // sortedRight.close();
+        left.close();
+        right.close();
+        //sortedLeft.close();
+        //sortedRight.close();
         for (File file : rightPages) {
             file.delete();
         }

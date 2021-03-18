@@ -34,7 +34,7 @@ public class Sort extends Operator {
     public Sort(Operator base, List<Attribute> sortAttributes, Sort.Direction sortDirection, int bufferSize) {
         super(OperatorType.ORDER);
         this.base = base;
-
+        this.schema = base.schema;
         this.sortDirection = sortDirection;
         this.sortAttributes = sortAttributes;
         this.sortIndices = computeSortIndices(this.base.getSchema(), this.sortAttributes);
