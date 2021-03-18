@@ -97,10 +97,9 @@ public class Distinct extends Operator {
 
         // do loop if output Batch is still not full yet.
         while (!outputBatch.isFull()) {
-            int sizeOfInputBatch = inputBatch.size();
 
             //check if it has finished
-            if (sizeOfInputBatch <= inputBufferElementIndex || inputBatch == null) {
+            if (inputBatch == null || inputBatch.size() <= inputBufferElementIndex) {
                 endOfLine = true;
                 break;
             }
