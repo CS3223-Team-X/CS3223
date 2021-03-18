@@ -1,5 +1,6 @@
 package qp.operators;
 
+import qp.optimizer.BufferManager;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
@@ -67,9 +68,9 @@ public class Distinct extends Operator {
             attributeIndex.add(schema.indexOf(attribute));
         }
 
-//        sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, BufferManager.getNumBuffer());
-//        return sorted.open();
-        return baseOperator.open();
+        sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, BufferManager.getNumBuffer());
+        return sorted.open();
+//        return baseOperator.open();
     }
 
     /**
@@ -88,8 +89,8 @@ public class Distinct extends Operator {
 
         // if there is nothing in the input buffer, do next to see next
         if (inputBatch == null) {
-//            inBatch = sorted.next();
-            inputBatch = baseOperator.next();
+            inputBatch = sorted.next();
+//            inputBatch = baseOperator.next();
         }
 
         // initialise output buffer to store the results
@@ -116,8 +117,8 @@ public class Distinct extends Operator {
             inputBufferElementIndex++;
             //if input batch is now full, restart the index and start a new inputBatch
             if (inputBufferElementIndex == batchSize) {
-//                inBatch = sorted.next();
-                inputBatch = baseOperator.next();
+                inputBatch = sorted.next();
+//                inputBatch = baseOperator.next();
                 inputBufferElementIndex = 0;
             }
         }
@@ -136,8 +137,8 @@ public class Distinct extends Operator {
 
     @Override
     public boolean close() {
-//        return sorted.close();
-        return baseOperator.close();
+        return sorted.close();
+//        return baseOperator.close();
     }
 
     public Operator getBase() {
