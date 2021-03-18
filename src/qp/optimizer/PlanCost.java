@@ -88,9 +88,17 @@ public class PlanCost {
         isFeasible = false;
         return 0;
     }
-    //TODO
+
     private long getStatistics(Distinct node) {
-        return calculateCost(node.getBase());
+        long tuples = calculateCost(node.getBase());
+        long tupleSize = node.getBase().getSchema().getTupleSize();
+        long capacity = Math.max(1, Batch.getPageSize() / tupleSize);
+        long pages = (long) Math.ceil(((double) tuples) / (double) capacity);
+        long numOfPasses = (long) (1 + Math.ceil(Math.log(Math.ceil(pages / (double) (BufferManager.getNumBuffer())) / Math.log(BufferManager.getNumBuffer() - 1))));
+        long distinctCost = (long) (2 * pages * (numOfPasses));
+        long outtuples = (long) Math.ceil(tuples);
+        cost += distinctCost;
+        return outtuples;
     }
 
     /**
@@ -158,7 +166,8 @@ public class PlanCost {
                 joinCost = leftPages + (long) Math.ceil(leftPages/ (double) (BufferManager.getBuffersPerJoin() - 2) ) * rightPages;
                 break;
             case JoinType.SORT_MERGE:
-                joinCost = leftPages + rightPages + (long) (2 * rightPages * (1 + Math.ceil(Math.log(Math.ceil(rightPages / (double) (BufferManager.getBuffersPerJoin())) / Math.log(BufferManager.getBuffersPerJoin() - 2)))));
+                long numOfPasses = (long) (1 + Math.ceil(Math.log(Math.ceil(rightPages / (double) (BufferManager.getNumBuffer())) / Math.log(BufferManager.getNumBuffer() - 1))));
+                joinCost = leftPages + rightPages + (long) (2 * rightPages * (numOfPasses));
                 break;
             default:
                 System.out.println("join type is not supported");
@@ -284,9 +293,16 @@ public class PlanCost {
         return numtuples;
     }
 
-    //TODO
     private long getStatistics(OrderBy node) {
-        return calculateCost(node.getBase());
+        long tuples = calculateCost(node.getBase());
+        long tupleSize = node.getBase().getSchema().getTupleSize();
+        long capacity = Math.max(1, Batch.getPageSize() / tupleSize);
+        long pages = (long) Math.ceil(((double) tuples) / (double) capacity);
+        long numOfPasses = (long) (1 + Math.ceil(Math.log(Math.ceil(pages / (double) (BufferManager.getNumBuffer())) / Math.log(BufferManager.getNumBuffer() - 1))));
+        long orderByCost = (long) (2 * pages * (numOfPasses));
+        long outtuples = (long) Math.ceil(tuples);
+        cost += orderByCost;
+        return outtuples;
     }
 
 }
