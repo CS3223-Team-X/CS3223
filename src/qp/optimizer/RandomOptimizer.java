@@ -407,21 +407,44 @@ public class RandomOptimizer {
      * Modifies the schema of operators which are modified due to selecing an alternative neighbor plan
      **/
     private void modifySchema(Operator node) {
-        if (node.getOpType() == OperatorType.JOIN) {
-            Operator left = ((Join) node).getLeft();
-            Operator right = ((Join) node).getRight();
-            modifySchema(left);
-            modifySchema(right);
-            node.setSchema(left.getSchema().joinWith(right.getSchema()));
-        } else if (node.getOpType() == OperatorType.SELECT) {
-            Operator base = ((Select) node).getBase();
-            modifySchema(base);
-            node.setSchema(base.getSchema());
-        } else if (node.getOpType() == OperatorType.PROJECT) {
-            Operator base = ((Project) node).getBase();
-            modifySchema(base);
-            List<Attribute> attrlist = ((Project) node).getProjAttr();
-            node.setSchema(base.getSchema().subSchema(attrlist));
+        switch (node.getOpType()) {
+            case OperatorType.SCAN:
+                // do nothing
+                break;
+            case OperatorType.JOIN:
+                Operator left = ((Join) node).getLeft();
+                Operator right = ((Join) node).getRight();
+                modifySchema(left);
+                modifySchema(right);
+                node.setSchema(left.getSchema().joinWith(right.getSchema()));
+                break;
+            case OperatorType.SELECT: {
+                Operator base = ((Select) node).getBase();
+                modifySchema(base);
+                node.setSchema(base.getSchema());
+                break;
+            }
+            case OperatorType.PROJECT: {
+                Operator base = ((Project) node).getBase();
+                modifySchema(base);
+                List<Attribute> attrlist = ((Project) node).getProjAttr();
+                node.setSchema(base.getSchema().subSchema(attrlist));
+                break;
+            }
+            case OperatorType.ORDER: {
+                Operator base = ((OrderBy) node).getBase();
+                modifySchema(base);
+                node.setSchema(base.getSchema());
+                break;
+            }
+            case OperatorType.DISTINCT: {
+                Operator base = ((Distinct) node).getBase();
+                modifySchema(base);
+                node.setSchema(base.getSchema());
+                break;
+            }
+            default:
+                throw new RuntimeException();
         }
     }
 }
