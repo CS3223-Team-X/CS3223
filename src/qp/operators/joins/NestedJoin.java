@@ -145,9 +145,9 @@ class NestedJoin extends Join {
                             if (leftTuple.checkJoin(rightTuple, leftIndices, rightIndices)) {
                                 Tuple outTuple = leftTuple.joinWith(rightTuple);
                                 outputBuffer.addRecord(outTuple);
-                                for (int ii = 0; ii < outTuple.getData().size(); ii++) {
-                                    System.out.println(outTuple.getData(ii));
-                                }
+                                // for (int ii = 0; ii < outTuple.getData().size(); ii++) {
+                                //     // System.out.println(outTuple.getData(ii));
+                                // }
                                 if (outputBuffer.isFull()) {
                                     // both left and right input buffers have been read completely
                                     if (i == leftInputBuffer.size() - 1 && j == rightInputBuffer.size() - 1) {  //case 1
