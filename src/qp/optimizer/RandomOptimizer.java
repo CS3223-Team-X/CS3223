@@ -95,6 +95,11 @@ public class RandomOptimizer {
                 ((OrderBy) node).setBase(base);
                 return node;
             }
+            case OperatorType.DISTINCT: {
+                Operator base = makeExecPlan(((Distinct) node).getBase());
+                ((Distinct) node).setBase(base);
+                return node;
+            }
             default:
                 throw new RuntimeException();
         }

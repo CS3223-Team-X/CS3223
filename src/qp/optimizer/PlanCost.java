@@ -81,10 +81,16 @@ public class PlanCost {
             return getStatistics((Scan) node);
         } else if (node.getOpType() == OperatorType.ORDER) {
             return getStatistics((OrderBy) node);
+        } else if (node.getOpType() == OperatorType.DISTINCT) {
+            return getStatistics((Distinct) node);
         }
         System.out.println("operator is not supported");
         isFeasible = false;
         return 0;
+    }
+    //TODO
+    private long getStatistics(Distinct node) {
+        return calculateCost(node.getBase());
     }
 
     /**
