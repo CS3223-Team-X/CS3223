@@ -20,8 +20,8 @@ public class Sort extends Operator {
     private final List<Attribute> sortAttributes;
     private final List<Integer> sortIndices;
     private final Comparator<Tuple> recordComparator;
-    private final int bufferSize;
-    private List<Batch> inputBuffer;
+    private final int numPages;
+    private List<Batch> inputPages;
 
     private ObjectInputStream sortedRecordsInputStream;
     private boolean isEndOfStream;
@@ -29,19 +29,19 @@ public class Sort extends Operator {
     /**
      * Constructs an instance with an allocated buffer size.
      *
-     * @param bufferSize The buffer size
+     * @param numPages The buffer size
      */
-    public Sort(Operator base, List<Attribute> sortAttributes, Sort.Direction sortDirection, int bufferSize) {
+    public Sort(Operator base, List<Attribute> sortAttributes, Sort.Direction sortDirection, int numPages) {
         super(OperatorType.ORDER);
         this.base = base;
-
+        this.schema = base.getSchema();
         this.sortDirection = sortDirection;
         this.sortAttributes = sortAttributes;
         this.sortIndices = computeSortIndices(this.base.getSchema(), this.sortAttributes);
         recordComparator = generateTupleComparator(this.sortDirection, this.sortIndices);
 
-        this.bufferSize = bufferSize;
-        inputBuffer = new ArrayList<>(bufferSize);
+        this.numPages = numPages;
+        inputPages = new ArrayList<>(numPages);
     }
 
     private List<Integer> computeSortIndices(Schema schema, List<Attribute> sortedAttributes) {
@@ -114,20 +114,20 @@ public class Sort extends Operator {
 
             do {
                 List<Tuple> records = new ArrayList<>();
-                for (Batch batch : inputBuffer) {
+                for (Batch batch : inputPages) {
                     records.addAll(batch.getRecords());
                 }
                 records.sort(recordComparator);
 
                 int tupleIndex = 0;
                 while (tupleIndex < records.size()) {
-                    for (int j = 0; j < inputBuffer.size(); j++) {
-                        Batch page = inputBuffer.get(j);
+                    for (int j = 0; j < inputPages.size(); j++) {
+                        Batch page = inputPages.get(j);
                         for (int i = 0; i < page.size(); i++) {
                             Tuple record = records.get(tupleIndex++);
                             page.setRecord(record, i);
                             if (tupleIndex >= records.size()) {
-                                inputBuffer = inputBuffer.subList(0, j + 1);
+                                inputPages = inputPages.subList(0, j + 1);
                                 break;
                             }
                         }
@@ -137,7 +137,7 @@ public class Sort extends Operator {
                 int j = 0;
                 String sortedRun = FILE_PREFIX + uniqueFileNumber++;
                 try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
-                    for (Batch page : inputBuffer) {
+                    for (Batch page : inputPages) {
                         j++;
                         out.writeObject(page);
                     }
@@ -147,7 +147,7 @@ public class Sort extends Operator {
                 }
                 sortedRuns.add(sortedRun);
                 readIntoInputBuffer(in);
-            } while (!inputBuffer.isEmpty());
+            } while (!inputPages.isEmpty());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -159,13 +159,13 @@ public class Sort extends Operator {
     private void readIntoInputBuffer(ObjectInputStream in) {
         Batch page;
         int i = 0;
-        inputBuffer.clear();
+        inputPages.clear();
         try {
-            while (inputBuffer.size() < bufferSize && (page = (Batch) in.readObject()) != null) {
+            while (inputPages.size() < numPages && (page = (Batch) in.readObject()) != null) {
                 //TODO stopgap measure; not sure why page can be empty
                 if (page.size() != 0) {
                     i++;
-                    inputBuffer.add(page);
+                    inputPages.add(page);
                 }
             }
         } catch (EOFException e) {
@@ -176,23 +176,38 @@ public class Sort extends Operator {
     }
 
     private List<String> mergeSortedRuns(List<String> sortedRuns) {
-        List<ObjectInputStream> inputStreams = openInputConnections(sortedRuns);
-        readIntoInputBuffer(inputStreams.toArray(new ObjectInputStream[0]));
+        // given F files
+
+        // merge them using a buffer of size B - 1; one page for one file
+        // whenever the output buffer is full, write it out
+        // continue until all pages from B - 1 files are read completely
+        // do the same for the remaining F - (B - 1) files iteratively
+        // exit this function
+        int numPagesForMerging = numPages - 1;
+        int startIndex = 0;
+        int endIndex = Math.min(sortedRuns.size(), numPagesForMerging);
         List<String> newSortedRuns = new ArrayList<>();
         do {
+            // open connections to B - 1 files
+            List<ObjectInputStream> inputStreams = openConnections(sortedRuns, startIndex, endIndex);
+            // init input pages with the first page from each file
+            initInputPages(inputStreams.toArray(new ObjectInputStream[0]));
 
-            Batch outputBuffer = new Batch(Batch.getPageSize() / schema.getTupleSize());
-            String sortedRun = FILE_PREFIX + uniqueFileNumber++;
-            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
+            // init output page
+            Batch outputPage = new Batch(Batch.getPageSize() / schema.getTupleSize());
+            String newSortedRun = FILE_PREFIX + uniqueFileNumber++;
+            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(newSortedRun))) {
+                // do B - 1 merge
                 while (true) {
                     Object[] nextRecordToAdd = getFirstRecord();
                     if (nextRecordToAdd == null) {
+                        // no more records to add
                         break;
                     }
                     Tuple targetRecord = (Tuple) nextRecordToAdd[0];
                     int targetIndex = (int) (nextRecordToAdd[1]);
-                    for (int i = 0; i < inputBuffer.size(); i++) {
-                        Batch page = inputBuffer.get(i);
+                    for (int i = 0; i < inputPages.size(); i++) {
+                        Batch page = inputPages.get(i);
                         Tuple record = page.getNextRecord();
                         if (record == null) {
                             continue;
@@ -226,12 +241,12 @@ public class Sort extends Operator {
                         }
                     }
 
-                    outputBuffer.addRecord(inputBuffer.get(targetIndex).removeAndGetFirst());
-                    if (inputBuffer.get(targetIndex).isEmpty()) {
+                    outputPage.addRecord(inputPages.get(targetIndex).removeAndGetFirst());
+                    if (inputPages.get(targetIndex).isEmpty()) {
                         try {
                             Batch nextPage = (Batch) inputStreams.get(targetIndex).readObject();
                             if (nextPage != null) {
-                                inputBuffer.set(targetIndex, nextPage);
+                                inputPages.set(targetIndex, nextPage);
                             }
                         } catch (EOFException e) {
                             // nothing left to read
@@ -240,27 +255,116 @@ public class Sort extends Operator {
                             e.printStackTrace();
                         }
                     }
-                    if (outputBuffer.isFull()) {
-                        out.writeObject(outputBuffer);
-                        outputBuffer.clearRecords();
+                    if (outputPage.isFull()) {
+                        out.writeObject(outputPage);
+                        outputPage.clearRecords();
                     }
+                }
+
+                // get ready for the next B - 1 files
+                startIndex = endIndex;
+                if (sortedRuns.size() - endIndex < numPagesForMerging) {
+                    // the number of files left to merge is less than B - 1 pages
+                    endIndex = sortedRuns.size();
+                } else {
+                    // the number of files left to merge is more than or equal to B - 1 pages
+                    endIndex += numPagesForMerging;
                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
+            // store the new sorted run
+            newSortedRuns.add(newSortedRun);
+        } while (startIndex < endIndex && endIndex <= sortedRuns.size());
 
-            newSortedRuns.add(sortedRun);
-            readIntoInputBuffer(inputStreams.toArray(new ObjectInputStream[0]));
-        } while (!inputBuffer.isEmpty());
         return newSortedRuns;
+
+//        List<String> newSortedRuns = new ArrayList<>();
+//        do {
+//
+//            Batch outputBuffer = new Batch(Batch.getPageSize() / schema.getTupleSize());
+//            String sortedRun = FILE_PREFIX + uniqueFileNumber++;
+//            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
+//                while (true) {
+//                    Object[] nextRecordToAdd = getFirstRecord();
+//                    if (nextRecordToAdd == null) {
+//                        break;
+//                    }
+//                    Tuple targetRecord = (Tuple) nextRecordToAdd[0];
+//                    int targetIndex = (int) (nextRecordToAdd[1]);
+//                    for (int i = 0; i < inputPages.size(); i++) {
+//                        Batch page = inputPages.get(i);
+//                        Tuple record = page.getNextRecord();
+//                        if (record == null) {
+//                            continue;
+//                        }
+//                        if (record != targetRecord) {
+//                            int result = Tuple.compare(targetRecord, record, this.sortIndices);
+//                            if (result < 0) {
+//                                switch (sortDirection) {
+//                                    case ASC:
+//                                        continue;
+//                                    case DSC:
+//                                        targetIndex = i;
+//                                        targetRecord = record;
+//                                        break;
+//                                    default:
+//                                        throw new RuntimeException();
+//                                }
+//                            }
+//                            if (result > 0) {
+//                                switch (sortDirection) {
+//                                    case ASC:
+//                                        targetIndex = i;
+//                                        targetRecord = record;
+//                                        break;
+//                                    case DSC:
+//                                        continue;
+//                                    default:
+//                                        throw new RuntimeException();
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    outputBuffer.addRecord(inputPages.get(targetIndex).removeAndGetFirst());
+//                    if (inputPages.get(targetIndex).isEmpty()) {
+//                        try {
+//                            Batch nextPage = (Batch) inputStreams.get(targetIndex).readObject();
+//                            if (nextPage != null) {
+//                                inputPages.set(targetIndex, nextPage);
+//                            }
+//                        } catch (EOFException e) {
+//                            // nothing left to read
+//
+//                        } catch (ClassNotFoundException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                    if (outputBuffer.isFull()) {
+//                        out.writeObject(outputBuffer);
+//                        outputBuffer.clearRecords();
+//                    }
+//                }
+//
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//
+//
+//            newSortedRuns.add(sortedRun);
+//            readIntoInputBuffer(inputStreams.toArray(new ObjectInputStream[0]));
+//        } while (!inputPages.isEmpty());
+//        return newSortedRuns;
     }
 
-    private List<ObjectInputStream> openInputConnections(List<String> sortedRuns) {
-        List<ObjectInputStream> inputStreams = new ArrayList<>();
+    private List<ObjectInputStream> openConnections(List<String> sortedRuns, int startIndex, int endIndex) {
+        List<ObjectInputStream> inputStreams = new ArrayList<>(endIndex - startIndex);
         try {
-            for (String sortedRun : sortedRuns) {
+            for (int i = startIndex; i < endIndex; i++) {
+                String sortedRun = sortedRuns.get(i);
                 inputStreams.add(new ObjectInputStream(new FileInputStream(sortedRun)));
             }
         } catch (IOException e) {
@@ -269,13 +373,19 @@ public class Sort extends Operator {
         return inputStreams;
     }
 
-    private void readIntoInputBuffer(ObjectInputStream... inStreams) {
-        inputBuffer.clear();
-        Batch page;
-        for (ObjectInputStream in : inStreams) {
+    /**
+     * Initialise the input pages with one page from each file connection.
+     *
+     * @param inStreams
+     */
+    private void initInputPages(ObjectInputStream... inStreams) {
+        inputPages.clear();
+
+        for (ObjectInputStream inStream : inStreams) {
             try {
-                while (inputBuffer.size() < bufferSize - 1 && (page = (Batch) in.readObject()) != null) {
-                    inputBuffer.add(page);
+                Batch page = (Batch) inStream.readObject();
+                if (page != null) {
+                    inputPages.add(page);
                 }
             } catch (EOFException e) {
                 // nothing left to read
@@ -286,8 +396,8 @@ public class Sort extends Operator {
     }
 
     private Object[] getFirstRecord() {
-        for (int i = 0; i < inputBuffer.size(); i++) {
-            Batch page = inputBuffer.get(i);
+        for (int i = 0; i < inputPages.size(); i++) {
+            Batch page = inputPages.get(i);
             if (page.hasMore()) {
                 return new Object[] {page.getNextRecord(), i};
             }
@@ -330,7 +440,7 @@ public class Sort extends Operator {
         for (Attribute attribute : sortAttributes) {
             newSortAttributes.add((Attribute) attribute.clone());
         }
-        Sort newSort = new Sort((Operator) base.clone(), newSortAttributes, sortDirection, bufferSize);
+        Sort newSort = new Sort((Operator) base.clone(), newSortAttributes, sortDirection, numPages);
         newSort.setSchema((Schema) base.getSchema().clone());
         return newSort;
     }
