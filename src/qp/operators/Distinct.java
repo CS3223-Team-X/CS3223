@@ -1,6 +1,5 @@
 package qp.operators;
 
-import qp.optimizer.BufferManager;
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Schema;
@@ -32,21 +31,19 @@ public class Distinct extends Operator {
     private Sort sorted;
 
     // Input Batch's current element's index
-    private int inIndex;
+    private int inputBufferElementIndex;
 
     // The input Batch
-    Batch inBatch;
+    Batch inputBatch;
     // The output Batch
-    Batch outBatch;
+    Batch outputBatch;
 
     // The very last tuple output
-    private Tuple lastOutTuple = null;
-
-    // this contains the number of buffers
-    private int numOfBuffer;
+    private Tuple lastOutputTuple = null;
 
     /**
      * Constructor for Distinct - initialise a distinct operation
+     *
      * @param baseOperator - self-explanatory
      * @param originalList - an original list in Vector in which Distinct will be used on to remove duplicates.
      */
@@ -77,48 +74,60 @@ public class Distinct extends Operator {
 
     /**
      * Read next tuple from operator
+     *
      * @return outBatch
      */
     @Override
     public Batch next() {
+        inputBufferElementIndex = 0;
+        // finished parsing already, can close and return null
         if (endOfLine) {
             close();
             return null;
         }
 
-        // do this if input Batch is null
-        if (inBatch == null) {
+        // if there is nothing in the input buffer, do next to see next
+        if (inputBatch == null) {
 //            inBatch = sorted.next();
-            inBatch = baseOperator.next();
+            inputBatch = baseOperator.next();
         }
 
-        outBatch = new Batch(batchSize);
+        // initialise output buffer to store the results
+        outputBatch = new Batch(batchSize);
+
         // do loop if output Batch is still not full yet.
-        while (!outBatch.isFull()) {
-            if (inBatch == null || inBatch.size() <= inIndex) {
+        while (!outputBatch.isFull()) {
+            int sizeOfInputBatch = inputBatch.size();
+
+            //check if it has finished
+            if (sizeOfInputBatch <= inputBufferElementIndex || inputBatch == null) {
                 endOfLine = true;
                 break;
             }
 
-            Tuple current = inBatch.elementAt(inIndex);
-            if (lastOutTuple == null || checkTuplesNotEqual(lastOutTuple, current)) {
-                outBatch.addRecord(current);
-                lastOutTuple = current;
-            }
-            inIndex++;
+            //get current tuple for comparison
+            Tuple current = inputBatch.elementAt(inputBufferElementIndex);
 
-            if (inIndex == batchSize) {
+            // do the comparison before deciding to add to output batch
+            if (lastOutputTuple == null || checkIfTuplesAreEqual(lastOutputTuple, current)) {
+                outputBatch.addRecord(current);
+                lastOutputTuple = current;
+            }
+
+            inputBufferElementIndex++;
+            //if input batch is now full, restart the index and start a new inputBatch
+            if (inputBufferElementIndex == batchSize) {
 //                inBatch = sorted.next();
-                inBatch = baseOperator.next();
-                inIndex = 0;
+                inputBatch = baseOperator.next();
+                inputBufferElementIndex = 0;
             }
         }
-        return outBatch;
+        return outputBatch;
     }
 
-    private boolean checkTuplesNotEqual(Tuple tuple1, Tuple tuple2) {
-        for (int index: attributeIndex) {
-            int result = Tuple.compare(tuple1, tuple2, index);
+    private boolean checkIfTuplesAreEqual(Tuple firstTuple, Tuple secondTuple) {
+        for (int indexNumber : attributeIndex) {
+            int result = Tuple.compare(firstTuple, secondTuple, indexNumber);
             if (result != 0) {
                 return true;
             }
@@ -139,6 +148,7 @@ public class Distinct extends Operator {
     public void setBase(Operator baseOperator) {
         this.baseOperator = baseOperator;
     }
+
 
     public Object clone() {
         Operator newBaseOperator = (Operator) baseOperator.clone();
