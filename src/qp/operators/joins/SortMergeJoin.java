@@ -91,13 +91,13 @@ public class SortMergeJoin extends Join {
 
 
 
-        // sortedLeft = new Sort(left, leftAttrs, Sort.Direction.ASC, numBuff);
-        // sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
+        sortedLeft = new Sort(left, leftAttrs, Sort.Direction.ASC, numBuff);
+        sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
 
-        // if (!sortedLeft.open() || !sortedRight.open()){
-        //     System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
-		// 	return false;
-		// }
+        if (!sortedLeft.open() || !sortedRight.open()){
+            System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
+			return false;
+		}
 
         /** If the right operator is not a base table then
          ** Materialize the intermediate result from right
@@ -108,7 +108,7 @@ public class SortMergeJoin extends Join {
         rightPages = new ArrayList<>();
 
         try {
-            while ((rightpage = right.next()) != null) {
+            while ((rightpage = sortedRight.next()) != null) {
                 String rfname = "SMJtemp-" + fileIndex;
                 File file = new File(rfname);
                 ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
@@ -151,7 +151,7 @@ public class SortMergeJoin extends Join {
             }
             if (leftCursor == CURSOR_START && retriveNewLeftPage) {
                 System.out.println("SortMergeJoin: retrive new left page");
-                leftInputBatch = left.next();
+                leftInputBatch = sortedLeft.next();
                 retriveNewLeftPage = false;
                 if (leftInputBatch == null || leftInputBatch.isEmpty()) {
                     System.out.println("SortMergeJoin: sorted left table run out");
@@ -162,6 +162,8 @@ public class SortMergeJoin extends Join {
 
             Tuple leftTuple;
             Tuple rightTuple;
+
+            System.out.println("SortMergeJoin: right tuple index: " + rightTupleIndex);
 
             // Get one tuple from each table
             leftTuple = leftInputBatch.getRecord(leftCursor);
@@ -175,9 +177,17 @@ public class SortMergeJoin extends Join {
             if (rightTuple == null) {
                 isRightEndOfStream = true;
                 if (isPrevTuplesMatch) {
+                    System.out.println("SortMergeJoin: go to next left tuple");
                     rightTupleIndex = currFirstMatchingTupleIndex;
                     isPrevTuplesMatch = false;
                     isRightEndOfStream = false;
+                    if (leftCursor == leftInputBatch.size() - 1) {
+                        // retrieve the next page of left table
+                        leftCursor = CURSOR_START;
+                        retriveNewLeftPage = true;
+                    } else {
+                        leftCursor++;
+                    }    
                 }
                 System.out.println("SortMergeJoin: right table run out");
                 continue;
@@ -199,6 +209,7 @@ public class SortMergeJoin extends Join {
 
                 if (isPrevTuplesMatch) {
                     rightTupleIndex = currFirstMatchingTupleIndex;
+                    System.out.println("SortMergeJoin: go to next left tuple");
                 }
 
                 // reset the boolean flag
@@ -214,6 +225,7 @@ public class SortMergeJoin extends Join {
             } else {
                 // found matching tuples
                 System.out.println("SortMergeJoin: found matching");
+                System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 Tuple outTuple = leftTuple.joinWith(rightTuple);
                 outputBuffer.addRecord(outTuple);
                 if (!isPrevTuplesMatch) {
@@ -223,7 +235,7 @@ public class SortMergeJoin extends Join {
                 rightTupleIndex++;
             }         
         }
-
+        System.out.println("SortMergeJoin: write out");
         return outputBuffer;
     }
 
