@@ -6,16 +6,13 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * The External Sort algorithm.
  */
 public class Sort extends Operator {
-    private static int COUNT = 0;
-    private static int RECORD_COUNT = 0;
     private static int uniqueFileNumber = 0;
-    private static final String FILE_PREFIX = "ext_sort";
+    private static final String FILE_PREFIX = "ext-sort";
     private static final String UNSORTED_FILE = "ext-sort_unsorted";
 
     private final Operator base;
@@ -25,8 +22,6 @@ public class Sort extends Operator {
     private final Comparator<Tuple> recordComparator;
     private final int numPages;
     private List<Batch> inputPages;
-
-    private int i = 0;
 
     private ObjectInputStream sortedRecordsInputStream;
     private boolean isEndOfStream;
@@ -76,10 +71,7 @@ public class Sort extends Operator {
             return false;
         }
 
-        System.out.println("SORT: " + sortAttributes.get(0).getTabName());
-
         Batch page;
-        int i = 0;
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(UNSORTED_FILE))) {
 
             while ((page = base.next()) != null) {
@@ -87,7 +79,6 @@ public class Sort extends Operator {
                 if (page.isEmpty()) {
                     continue;
                 }
-                i++;
                 out.writeObject(page);
             }
         } catch (IOException e) {
@@ -95,11 +86,8 @@ public class Sort extends Operator {
             return false;
         }
 
-        int round = 1;
         List<String> sortedRuns = generateSortedRuns();
         while (sortedRuns.size() > 1) {
-            System.out.println("SORT: ROUND: " + round++);
-            System.out.println("SORT: SORTED RUNS: " + String.join(", ", sortedRuns));
             sortedRuns = mergeSortedRuns(sortedRuns);
 
         }
@@ -133,7 +121,6 @@ public class Sort extends Operator {
 
                 int tupleIndex = 0;
                 while (tupleIndex < records.size()) {
-                    // j = 10
                     for (int j = 0; j < inputPages.size(); j++) {
                         Batch page = inputPages.get(j);
                         for (int i = 0; i < page.size(); i++) {
@@ -143,19 +130,7 @@ public class Sort extends Operator {
                             // we fill up the first few pages full with records
                             // then we throw away the other pages
                             if (tupleIndex >= records.size()) {
-                                // input pages [x, x, x] [x, x] [x] [x]
-                                // {x, x, x, x, x, x, x}
-                                // [x, x, x] [x, x, x] [x] []
-
-                                // [] [] []
-                                //
-                                // say j = 2
-                                // sublist from index 0 to 2 inclusive
-                                // tuple 100B
-                                // page 300 => 3 records
-                                // page 400 => 4 records
                                 inputPages = inputPages.subList(0, j + 1);
-                                // list from 0 to 10 inclusive of length 11
                                 break;
                             }
                         }
@@ -164,11 +139,7 @@ public class Sort extends Operator {
 
                 String sortedRun = FILE_PREFIX + uniqueFileNumber++;
                 try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
-                    System.out.println("SORT: FILE: " + sortedRun);
                     for (Batch page : inputPages) {
-                        for (int i = 0; i < page.size(); i++) {
-                            System.out.println("SORT: CREATE SORTED RUNS: " + page.getRecord(i).getData(sortIndices.get(0)));
-                        }
                         out.writeObject(page);
                     }
 
@@ -188,13 +159,11 @@ public class Sort extends Operator {
 
     private void readIntoInputBuffer(ObjectInputStream in) {
         Batch page;
-        int i = 0;
         inputPages = new ArrayList<>();
         try {
             while (inputPages.size() < numPages && (page = (Batch) in.readObject()) != null) {
                 //TODO stopgap measure; not sure why page can be empty
                 if (page.size() != 0) {
-                    i++;
                     inputPages.add(page);
                 }
             }
@@ -206,18 +175,9 @@ public class Sort extends Operator {
     }
 
     private List<String> mergeSortedRuns(List<String> sortedRuns) {
-        // given F files
-
-        // merge them using a buffer of size B - 1; one page for one file
-        // whenever the output buffer is full, write it out
-        // continue until all pages from B - 1 files are read completely
-        // do the same for the remaining F - (B - 1) files iteratively
-        // exit this function
         int numPagesForMerging = numPages - 1;
         int startIndex = 0;
         int endIndex = Math.min(sortedRuns.size(), numPagesForMerging);
-        int x = 0;
-        List<String> run = new ArrayList<>();
         List<String> newSortedRuns = new ArrayList<>();
         do {
             // open connections to B - 1 files
@@ -229,7 +189,6 @@ public class Sort extends Operator {
             Batch outputPage = new Batch(Batch.getPageSize() / schema.getTupleSize());
             String newSortedRun = FILE_PREFIX + uniqueFileNumber++;
             try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(newSortedRun))) {
-                System.out.println("SORT: X: " + x++);
                 // do B - 1 merge
                 while (true) {
                     Object[] nextRecordToAdd = getFirstRecord();
@@ -274,22 +233,7 @@ public class Sort extends Operator {
                         }
                     }
 
-                    // let x be a page
-                    // let [] be a run
-                    // B = 3
-                    // Sorted runs: [x, x, x], [x, x, x], [x, x, x], [x]
-
-
-                    // Merge sorted runs
-                    // [x, x, x], [x, x, x] => [x, x, x, x, x, x] => 6
-                    // [x, x, x], [x]       => [x, x, x, x]       => 4
-
-                    // [x, x, x, x, x, x], [x, x, x, x] => [x, x, x, x, x, x, x, x, x, x] => 10
-                    //
-
-                    Tuple rec = inputPages.get(targetIndex).removeAndGetFirst();
-//                    System.out.println("SORT: " + rec.getData(sortIndices.get(0)));
-                    outputPage.addRecord(rec);
+                    outputPage.addRecord(inputPages.get(targetIndex).removeAndGetFirst());
                     if (inputPages.get(targetIndex).isEmpty()) {
                         try {
                             Batch nextPage = (Batch) inputStreams.get(targetIndex).readObject();
@@ -305,22 +249,10 @@ public class Sort extends Operator {
                     }
 
                     if (outputPage.isFull() || getFirstRecord() == null) {
-                        for (int i = 0; i < outputPage.size(); i++) {
-                            run.add((String) outputPage.getRecord(i).getData(sortIndices.get(0)));
-//                            System.out.println("SORT: " + outputPage.getRecord(i).getData(sortIndices.get(0)));
-                        }
-                        System.out.println("SORT: Write to: " + newSortedRun);
-//                        System.out.println();
-                        COUNT++;
                         out.writeObject(outputPage);
                         outputPage = new Batch(Batch.getPageSize() / schema.getTupleSize());
-//                        outputPage.clearRecords();
                     }
                 }
-
-                List<String> stringRun = run.stream().map(String::valueOf).collect(Collectors.toUnmodifiableList());
-                System.out.println("SORT: " + String.join(", ", stringRun));
-                run.clear();
 
                 // get ready for the next B - 1 files
                 startIndex = endIndex;
@@ -342,84 +274,6 @@ public class Sort extends Operator {
         } while (startIndex < endIndex && endIndex <= sortedRuns.size());
 
         return newSortedRuns;
-
-//        List<String> newSortedRuns = new ArrayList<>();
-//        do {
-//
-//            Batch outputBuffer = new Batch(Batch.getPageSize() / schema.getTupleSize());
-//            String sortedRun = FILE_PREFIX + uniqueFileNumber++;
-//            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(sortedRun))) {
-//                while (true) {
-//                    Object[] nextRecordToAdd = getFirstRecord();
-//                    if (nextRecordToAdd == null) {
-//                        break;
-//                    }
-//                    Tuple targetRecord = (Tuple) nextRecordToAdd[0];
-//                    int targetIndex = (int) (nextRecordToAdd[1]);
-//                    for (int i = 0; i < inputPages.size(); i++) {
-//                        Batch page = inputPages.get(i);
-//                        Tuple record = page.getNextRecord();
-//                        if (record == null) {
-//                            continue;
-//                        }
-//                        if (record != targetRecord) {
-//                            int result = Tuple.compare(targetRecord, record, this.sortIndices);
-//                            if (result < 0) {
-//                                switch (sortDirection) {
-//                                    case ASC:
-//                                        continue;
-//                                    case DSC:
-//                                        targetIndex = i;
-//                                        targetRecord = record;
-//                                        break;
-//                                    default:
-//                                        throw new RuntimeException();
-//                                }
-//                            }
-//                            if (result > 0) {
-//                                switch (sortDirection) {
-//                                    case ASC:
-//                                        targetIndex = i;
-//                                        targetRecord = record;
-//                                        break;
-//                                    case DSC:
-//                                        continue;
-//                                    default:
-//                                        throw new RuntimeException();
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    outputBuffer.addRecord(inputPages.get(targetIndex).removeAndGetFirst());
-//                    if (inputPages.get(targetIndex).isEmpty()) {
-//                        try {
-//                            Batch nextPage = (Batch) inputStreams.get(targetIndex).readObject();
-//                            if (nextPage != null) {
-//                                inputPages.set(targetIndex, nextPage);
-//                            }
-//                        } catch (EOFException e) {
-//                            // nothing left to read
-//
-//                        } catch (ClassNotFoundException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                    if (outputBuffer.isFull()) {
-//                        out.writeObject(outputBuffer);
-//                        outputBuffer.clearRecords();
-//                    }
-//                }
-//
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//
-//            newSortedRuns.add(sortedRun);
-//            readIntoInputBuffer(inputStreams.toArray(new ObjectInputStream[0]));
-//        } while (!inputPages.isEmpty());
-//        return newSortedRuns;
     }
 
     private List<ObjectInputStream> openConnections(List<String> sortedRuns, int startIndex, int endIndex) {
@@ -484,7 +338,6 @@ public class Sort extends Operator {
         }
 
         try {
-            i++;
             return (Batch) sortedRecordsInputStream.readObject();
         } catch (EOFException | NullPointerException e) {
             isEndOfStream = true;
