@@ -30,6 +30,10 @@ public class OrderBy extends Operator {
         this.base = base;
     }
 
+    public Sort.Direction getSortDirection() {
+        return sortDirection;
+    }
+
     @Override
     public boolean open() {
         sort = new Sort(base, orderByAttributes, sortDirection, BufferManager.getNumBuffer());
