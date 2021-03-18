@@ -127,7 +127,19 @@ public class Debug {
                 break;
 
             case OperatorType.ORDER:
-                System.out.println("Sort by(");
+                String sortDirection;
+                switch (((OrderBy) node).getSortDirection()) {
+                    case ASC:
+                        sortDirection = "ASC";
+                        break;
+                    case DSC:
+                        sortDirection = "DSC";
+                        break;
+                    default:
+                        throw new RuntimeException();
+                }
+
+                System.out.println("Sort by " + sortDirection + " (");
                 PPrint(((OrderBy) node).getBase());
                 System.out.println(")");
                 break;
