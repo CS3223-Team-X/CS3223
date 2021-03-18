@@ -33,6 +33,7 @@ public class OrderBy extends Operator {
     @Override
     public boolean open() {
         sort = new Sort(base, orderByAttributes, sortDirection, BufferManager.getNumBuffer());
+        sort.setSchema(base.getSchema());
         return sort.open();
     }
 

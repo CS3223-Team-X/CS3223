@@ -52,6 +52,9 @@ public class Batch implements Serializable {
     }
 
     public Tuple getNextRecord() {
+        if (tuples.isEmpty()) {
+            return null;
+        }
         return tuples.get(0);
     }
 

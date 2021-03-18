@@ -106,6 +106,7 @@ public class Join extends Operator {
         joinConditions.add(condition);
     }
 
+    @Override
     public Object clone() {
         Operator newLeft = (Operator) left.clone();
         Operator newRight = (Operator) right.clone();

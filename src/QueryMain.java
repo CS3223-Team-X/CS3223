@@ -100,14 +100,22 @@ public class QueryMain {
                     e.printStackTrace();
                 }
             } else numBuff = Integer.parseInt(args[3]);
-            BufferManager bm = new BufferManager(numBuff, numJoin);
+            BufferManager.init(numBuff, numJoin);
+        } else {
+            try {
+                BufferManager.init(Integer.parseInt(args[3]), 0);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         /** Check the number of buffers available is enough or not **/
-        int numBuff = BufferManager.getBuffersPerJoin();
-        if (numJoin > 0 && numBuff < 3) {
-            System.out.println("Minimum 3 buffers are required per join operator ");
-            System.exit(1);
+        if (numJoin > 0) {
+            int numBuff = BufferManager.getBuffersPerJoin();
+            if (numBuff < 3) {
+                System.out.println("Minimum 3 buffers are required per join operator ");
+                System.exit(1);
+            }
         }
     }
 
