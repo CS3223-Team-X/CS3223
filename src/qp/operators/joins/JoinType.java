@@ -13,6 +13,6 @@ public class JoinType {
     public static final int HASH = 3;
 
     public static int numJoinTypes() {
-        return 1;
+        return 3;
     }
 }
