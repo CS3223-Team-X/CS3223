@@ -307,7 +307,7 @@ public class Sort extends Operator {
 
                     if (outputPage.isFull() || getFirstRecord() == null) {
                         for (int i = 0; i < outputPage.size(); i++) {
-                            run.add((String) outputPage.getRecord(i).getData(sortIndices.get(0)));
+                            //run.add((String) outputPage.getRecord(i).getData(sortIndices.get(0)));
 //                            System.out.println("SORT: " + outputPage.getRecord(i).getData(sortIndices.get(0)));
                         }
                         System.out.println("SORT: Write to: " + newSortedRun);
@@ -321,8 +321,8 @@ public class Sort extends Operator {
                     }
                 }
 
-                List<String> stringRun = run.stream().map(String::valueOf).collect(Collectors.toUnmodifiableList());
-                System.out.println("SORT: " + String.join(", ", stringRun));
+                // List<String> stringRun = run.stream().map(String::valueOf).collect(Collectors.toUnmodifiableList());
+                // System.out.println("SORT: " + String.join(", ", stringRun));
                 run.clear();
 
                 // get ready for the next B - 1 files
