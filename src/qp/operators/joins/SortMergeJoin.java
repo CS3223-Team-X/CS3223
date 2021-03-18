@@ -305,8 +305,8 @@ public class SortMergeJoin extends Join {
     public boolean close() {
         left.close();
         right.close();
-        //sortedLeft.close();
-        //sortedRight.close();
+        sortedLeft.close();
+        sortedRight.close();
         for (File file : rightPages) {
             file.delete();
         }

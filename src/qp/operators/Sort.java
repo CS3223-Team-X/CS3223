@@ -1,5 +1,6 @@
 package qp.operators;
 
+import qp.optimizer.BufferManager;
 import qp.utils.*;
 
 import java.io.*;
@@ -257,7 +258,8 @@ public class Sort extends Operator {
                     }
                     if (outputPage.isFull()) {
                         out.writeObject(outputPage);
-                        outputPage.clearRecords();
+                        // outputPage.clearRecords();
+                        outputPage = new Batch(Batch.getPageSize() / schema.getTupleSize());
                     }
                 }
 

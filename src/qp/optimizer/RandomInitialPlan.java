@@ -169,7 +169,7 @@ class RandomInitialPlan {
             // choose a join type at random
             int numJoinTypes = JoinType.numJoinTypes();
             int joinType = RandomNumberGenerator.randInt(0, numJoinTypes - 1);
-            join.setJoinType(0);
+            join.setJoinType(2);
 
             modifyHashtable(leftTableScan, join);
             modifyHashtable(rightTableScan, join);
