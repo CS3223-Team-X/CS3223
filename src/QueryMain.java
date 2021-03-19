@@ -43,7 +43,6 @@ public class QueryMain {
     private static int getPageSize(String[] args, BufferedReader in) {
         int pagesize = -1;
         if (args.length < 3) {
-            /** Enter the number of bytes per page **/
             System.out.println("enter the number of bytes per page");
             try {
                 String temp = in.readLine();
@@ -89,30 +88,22 @@ public class QueryMain {
      * As buffer manager is not implemented, just input the number of buffers available.
      **/
     private static void configureBufferManager(int numJoin, String[] args, BufferedReader in) {
-        if (numJoin != 0) {
-            int numBuff = 1000;
-            if (args.length < 4) {
-                System.out.println("enter the number of buffers available");
-                try {
-                    String temp = in.readLine();
-                    numBuff = Integer.parseInt(temp);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else numBuff = Integer.parseInt(args[3]);
-            BufferManager.init(numBuff, numJoin);
-        } else {
+        int numBuff = 1000;
+        if (args.length < 4) {
+            System.out.println("enter the number of buffers available");
             try {
-                BufferManager.init(Integer.parseInt(args[3]), 0);
+                String temp = in.readLine();
+                numBuff = Integer.parseInt(temp);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
+        } else numBuff = Integer.parseInt(args[3]);
+        BufferManager.init(numBuff, numJoin);
 
         /** Check the number of buffers available is enough or not **/
         if (numJoin > 0) {
-            int numBuff = BufferManager.getBuffersPerJoin();
-            if (numBuff < 3) {
+            int buffersPerJoin = BufferManager.getBuffersPerJoin();
+            if (buffersPerJoin < 3) {
                 System.out.println("Minimum 3 buffers are required per join operator ");
                 System.exit(1);
             }
