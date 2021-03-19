@@ -54,6 +54,11 @@ public class Distinct extends Operator {
         this.baseOperator = baseOperator;
     }
 
+    /**
+     * This method will run when Distinct operator is called.
+     * It will sort the inputs.
+     * @return True if it has been sorted
+     */
     @Override
     public boolean open() {
         /** set number of tuples per batch **/
@@ -121,6 +126,12 @@ public class Distinct extends Operator {
         return outputBatch;
     }
 
+    /**
+     * This method compares tuples to check if they are duplicates.
+     * @param firstTuple for comparison
+     * @param secondTuple for comparisons
+     * @return boolean
+     */
     private boolean checkIfTuplesAreEqual(Tuple firstTuple, Tuple secondTuple) {
         for (int indexNumber : attributeIndex) {
             int result = Tuple.compare(firstTuple, secondTuple, indexNumber);
@@ -131,20 +142,36 @@ public class Distinct extends Operator {
         return false;
     }
 
+    /**
+     * Method will check for return value of sorted.close()
+     * @return boolean true or false
+     */
     @Override
     public boolean close() {
         return sorted.close();
     }
 
+    /**
+     * Method will get baseOperator
+     * @return baseOperator
+     */
     public Operator getBase() {
         return baseOperator;
     }
 
+    /**
+     * Method will set baseOperator
+     * @param baseOperator
+     */
     public void setBase(Operator baseOperator) {
         this.baseOperator = baseOperator;
     }
 
 
+    /**
+     * Method will clone the results
+     * @return the new list that is distinct (no duplicates)
+     */
     public Object clone() {
         Operator newBaseOperator = (Operator) baseOperator.clone();
         Vector<Attribute> newProjectList = new Vector<>();
