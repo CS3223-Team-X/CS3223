@@ -7,6 +7,12 @@ import qp.utils.Batch;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The ORDERBY operator.
+ * In effect, this class wraps around the {@code Sort} operator since
+ * their functionality is identical, save for the direction of the
+ * ordering.
+ */
 public class OrderBy extends Operator {
     private Operator base;
 

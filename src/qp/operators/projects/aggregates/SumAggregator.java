@@ -1,5 +1,8 @@
 package qp.operators.projects.aggregates;
 
+/**
+ * An aggregator to compute the sum of a series of values.
+ */
 public class SumAggregator implements Aggregator<Float> {
     private Float sum;
 

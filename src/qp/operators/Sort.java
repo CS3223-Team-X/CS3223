@@ -78,7 +78,7 @@ public class Sort extends Operator {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(UNSORTED_FILE))) {
 
             while ((page = base.next()) != null) {
-                //TODO for some reasons, some pages at the end are empty
+                // some pages could be empty, so we ignore those
                 if (page.isEmpty()) {
                     continue;
                 }
@@ -172,7 +172,6 @@ public class Sort extends Operator {
         inputPages = new ArrayList<>();
         try {
             while (inputPages.size() < numPages && (page = (Batch) in.readObject()) != null) {
-                //TODO stopgap measure; not sure why page can be empty
                 if (page.size() != 0) {
                     inputPages.add(page);
                 }
@@ -184,6 +183,13 @@ public class Sort extends Operator {
         }
     }
 
+    /**
+     * Merges the specified sorted runs to produce new sorted runs of
+     * greater length.
+     *
+     * @param sortedRuns The sorted runs to merge
+     * @return New sorted runs of greater length
+     */
     private List<String> mergeSortedRuns(List<String> sortedRuns) {
         int numPagesForMerging = numPages - 1;
         int startIndex = 0;
@@ -252,7 +258,6 @@ public class Sort extends Operator {
                             }
                         } catch (EOFException e) {
                             // nothing left to read
-
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();
                         }
@@ -289,6 +294,15 @@ public class Sort extends Operator {
         return newSortedRuns;
     }
 
+    /**
+     * Opens input streams to the specified sorted runs starting from
+     * the start index to the end index exclusive.
+     *
+     * @param sortedRuns The sorted runs
+     * @param startIndex The start index
+     * @param endIndex The end index
+     * @return Input streams to the sorted runs specified by the indices
+     */
     private List<ObjectInputStream> openConnections(List<String> sortedRuns, int startIndex, int endIndex) {
         List<ObjectInputStream> inputStreams = new ArrayList<>(endIndex - startIndex);
         try {
@@ -302,6 +316,11 @@ public class Sort extends Operator {
         return inputStreams;
     }
 
+    /**
+     * Closes input streams of sorted runs.
+     *
+     * @param inputStreams The input stream
+     */
     private void closeConnections(List<ObjectInputStream> inputStreams) {
         for (ObjectInputStream inputStream : inputStreams) {
             try {
@@ -324,9 +343,9 @@ public class Sort extends Operator {
     }
 
     /**
-     * Initialise the input pages with one page from each file connection.
+     * Initialise the input pages with one page from each input stream.
      *
-     * @param inStreams
+     * @param inStreams The input streams from which to
      */
     private void initInputPages(ObjectInputStream... inStreams) {
         inputPages = new ArrayList<>();
@@ -345,6 +364,12 @@ public class Sort extends Operator {
         }
     }
 
+    /**
+     * Gets the first record for comparison with the subsequent
+     * records.
+     *
+     * @return The first record if exists, else null
+     */
     private Object[] getFirstRecord() {
         for (int i = 0; i < inputPages.size(); i++) {
             Batch page = inputPages.get(i);
@@ -364,9 +389,9 @@ public class Sort extends Operator {
         try {
             return (Batch) sortedRecordsInputStream.readObject();
         } catch (EOFException | NullPointerException e) {
+            // do not read any more
             isEndOfStream = true;
             return null;
-            // do not read any more
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             return null;
