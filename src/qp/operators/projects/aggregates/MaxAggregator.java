@@ -1,5 +1,8 @@
 package qp.operators.projects.aggregates;
 
+/**
+ * An aggregator to find the maximum in a series of values.
+ */
 public class MaxAggregator implements Aggregator<Float> {
     private Float maxValue;
 

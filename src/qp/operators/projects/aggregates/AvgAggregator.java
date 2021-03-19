@@ -1,5 +1,8 @@
 package qp.operators.projects.aggregates;
 
+/**
+ * An aggregator to average a series of values.
+ */
 public class AvgAggregator implements Aggregator<Float> {
     private long count;
     private Float totalValue;

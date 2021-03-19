@@ -1,5 +1,8 @@
 package qp.operators.projects.aggregates;
 
+/**
+ * An aggregator to find the minimum in a series of values.
+ */
 public class MinAggregator implements Aggregator<Float> {
     private Float minValue;
 

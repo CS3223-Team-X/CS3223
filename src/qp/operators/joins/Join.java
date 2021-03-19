@@ -1,7 +1,3 @@
-/**
- * This is base class for all the join operators
- **/
-
 package qp.operators.joins;
 
 import qp.operators.Operator;
@@ -12,15 +8,21 @@ import qp.utils.Schema;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Thee base class for all the join operators.
+ **/
 public class Join extends Operator {
     protected static int CURSOR_START = 0;
 
-    protected Operator left;                       // Left child
-    protected Operator right;                      // Right child
-    protected List<Condition> joinConditions;  // List of join conditions
-    protected int numBuff;                         // Number of buffers available
-    protected int joinType;                        // JoinType.NestedJoin/SortMerge/HashJoin
-    protected int nodeIndex;                       // Each join node is given a number
+    protected Operator left;
+    protected Operator right;
+    protected List<Condition> joinConditions;
+    protected int numBuff;
+    protected int joinType;
+    /**
+     * Each join node is given an index.
+     */
+    protected int nodeIndex;
 
     public Join(Operator left, Operator right) {
         super(OperatorType.JOIN);
