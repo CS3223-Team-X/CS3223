@@ -97,7 +97,7 @@ public class Distinct extends Operator {
         while (!outputBatch.isFull()) {
 
             //check if it has finished
-            if (inputBatch == null || inputBatch.size() <= inputBufferElementIndex) {
+            if (inputBatch == null) {
                 endOfLine = true;
                 break;
             }
@@ -113,7 +113,7 @@ public class Distinct extends Operator {
 
             inputBufferElementIndex++;
             //if input batch is now full, restart the index and start a new inputBatch
-            if (inputBufferElementIndex == batchSize) {
+            if (inputBufferElementIndex == inputBatch.size()) {
                 inputBatch = sorted.next();
                 inputBufferElementIndex = 0;
             }
