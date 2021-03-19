@@ -6,6 +6,7 @@ package qp.utils;
 
 import java.util.*;
 import java.io.*;
+import java.util.stream.Collectors;
 
 /**
  * Tuple - a simple object which holds an ArrayList of data
@@ -127,5 +128,11 @@ public class Tuple implements Serializable {
             System.exit(1);
             return 0;
         }
+    }
+
+    @Override
+    public String toString() {
+        List<String> dataStrings = data.stream().map(String::valueOf).collect(Collectors.toUnmodifiableList());
+        return String.join(", ", dataStrings);
     }
 }
