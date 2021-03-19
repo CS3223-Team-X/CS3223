@@ -2,34 +2,65 @@
 **AY20-21 Semester 2**  
 **National University of Singapore, School of Computing**
 
-This project aims to let us gain a feel for how query processing works in a “real” system, specifically focusing on a simple SPJ (Select-Project-Join) query engine.  
-
-We saw how different query execution trees have different performance results, which motivates us to query optimization.  
-
-This simple query processing system uses “toy” data sets and an execution system that ignores many of the complex aspects of a real system.  
-
-More information about this assignment can be found [here](https://www.comp.nus.edu.sg/~tankl/cs3223/project.html).
-
-## Our Implementation
-1. Block Nested Loop Join (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
-2. External Sort-Merge algorithm (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
-3. Sort Merge Join (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
-4. Distinct (see code at: [Distinct.java](https://github.com/CS3223-Team-X/CS3223))
-5. Orderby (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
-6. Aggregate functions (see code at: [insert file name](https://github.com/CS3223-Team-X/CS3223))
-
-## Prerequisites
-* Java version 11.
-
-## Setup
-*
-
 ## About
-This is our implementation for CS3223 Database Systems Implementation module. Our team consists of the following
-students from National University of Singapore, School of Computing.
+This is our implementation for a project in the module CS3223 Database Systems Implementation.
+Our team consists of the following students from National University of Singapore, School of Computing:
 * [YIK REN JUN, GABRIEL](https://github.com/GabrielYik)
 * [KANG WANGKAI](https://github.com/Kangwkk)
 * [JOVAN HUANG TIAN CHUN](https://github.com/jovanhuang)
 
+The project aimed to let us gain a feel for how query processing works through development and enhancement of a simple Select-Project-Join (SPJ) query engine.  
 
-## Additional Features Implemented
+We saw how different query execution trees have different performance results, which provides motivation for query optimization.  
+
+This query engine provides rudimentary functionality and ignores many of the complex aspects of a real system.  
+
+More information about this project can be found [here](https://www.comp.nus.edu.sg/~tankl/cs3223/project.html).
+
+## Setup
+### Prerequisites
+* Java version 11.
+
+### Environment Setup
+#### Windows
+1. Run the script `queryenv.bat` to set up environment variables
+2. Run the script `build.bat` to compile required files
+
+#### Unix
+1. Run the script `queryenv` (command `source queryenv`) to set up environment variables
+2. Run the script `build.sh` to compile required files
+
+### Tables Setup
+1. Run the helper program `RandomDB` (command `java RandomDB <table-name> <number-of-records-in-table>`) for a table to generate preliminary files (`<table-name>`.md, `<table-name>`.stat, `<table-name>`.txt)
+2. Run the helper program `ConvertTxtToTbl` (command `java ConvertTxtToTbl <table-name>`) for a table to generate a file containing a table, with records stored as objects, from the `<table>.txt` file
+
+### Running
+* Run the main program `QueryMain` (command `java QueryMain <query-in-file> <query-out-file> [page-size] [page-count]`)
+
+## Chosen Implementations
+1. Block Nested Loop Join (see: [BlockNestedJoin.java](src/qp/operators/joins/BlockNestedJoin.java))
+2. External Sort-Merge algorithm (see: [Sort.java](src/qp/operators/Sort.java))
+3. Sort Merge Join (see: [SortMergeJoin.java](src/qp/operators/joins/SortMergeJoin.java))
+4. DISTINCT (see: [Distinct.java](src/qp/operators/Distinct.java))
+5. ORDERBY (see: [OrderBy.java](src/qp/operators/OrderBy.java))
+6. Aggregate functions: MIN, MAX, AVG, COUNT (see: [aggregates](src/qp/operators/projects/aggregates))
+
+## Additional Implementations
+1. SUM (an aggregate function)
+
+## Implementation Notes
+### Joins
+* The stock Page Nested Loop Join is purposed as a generic Nested Loop Join with a variable input buffer size
+* Both Block Nested Loop Join and Page Nested Loop Join (now separate from the stock version) utilise Nested Loop Join with different input buffer sizes;
+  default of 1 for Page Nested Join, and a variable number for Block Nested Join
+### Sorting
+* External Sort-Merge is utilised by a few implementations: Sort Merge Join, DISTINCT and ORDERBY
+### Aggregates
+* Unlike the other implementations, which are modeled as nodes in a query plan tree, the aggregate functions do not fit such a model, and are used only during attribute projection
+
+## Fixes
+* Disallow further program execution when the value of `[page-size]` in the running of the main program `QueryMain` is less than the cumulative size of all specified tuple sizes
+
+## Further References
+* [Original User Guide](https://www.comp.nus.edu.sg/~tankl/cs3223/project/user.htm)
+* [Original Developer Guide](https://www.comp.nus.edu.sg/~tankl/cs3223/project/developer.htm)
