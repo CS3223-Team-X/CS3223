@@ -1,4 +1,4 @@
-package qp.operators.projects.aggregate;
+package qp.operators.projects.aggregates;
 
 public class AvgAggregator implements Aggregator<Float> {
     private long count;

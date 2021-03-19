@@ -63,14 +63,12 @@ public class Distinct extends Operator {
         int lengthOfOriginalList = originalList.size();
 
         for (int i = 0; i < lengthOfOriginalList; i++) {
-            Attribute attribute = (Attribute) originalList.get(i);
-            System.out.println((Attribute) originalList.get(i));
+            Attribute attribute = originalList.get(i);
             attributeIndex.add(schema.indexOf(attribute));
         }
 
         sorted = new Sort(baseOperator, originalList, Sort.Direction.ASC, BufferManager.getNumBuffer());
         return sorted.open();
-//        return baseOperator.open();
     }
 
     /**
@@ -90,7 +88,6 @@ public class Distinct extends Operator {
         // if there is nothing in the input buffer, do next to see next
         if (inputBatch == null) {
             inputBatch = sorted.next();
-//            inputBatch = baseOperator.next();
         }
 
         // initialise output buffer to store the results
@@ -100,7 +97,7 @@ public class Distinct extends Operator {
         while (!outputBatch.isFull()) {
 
             //check if it has finished
-            if (inputBatch == null || inputBatch.size() <= inputBufferElementIndex) {
+            if (inputBatch == null) {
                 endOfLine = true;
                 break;
             }
@@ -116,9 +113,8 @@ public class Distinct extends Operator {
 
             inputBufferElementIndex++;
             //if input batch is now full, restart the index and start a new inputBatch
-            if (inputBufferElementIndex == batchSize) {
+            if (inputBufferElementIndex == inputBatch.size()) {
                 inputBatch = sorted.next();
-//                inputBatch = baseOperator.next();
                 inputBufferElementIndex = 0;
             }
         }
@@ -138,7 +134,6 @@ public class Distinct extends Operator {
     @Override
     public boolean close() {
         return sorted.close();
-//        return baseOperator.close();
     }
 
     public Operator getBase() {
