@@ -1,0 +1,19 @@
+source queryenv
+
+./build.sh
+
+NUM_RECORDS_BILL=10
+NUM_RECORDS_CART=100
+NUM_RECORDS_CART_DETAILS=10
+NUM_RECORDS_CUSTOMER=200
+java RandomDB BILL $NUM_RECORDS_BILL
+java RandomDB CART $NUM_RECORDS_CART
+java RandomDB CARTDETAILS $NUM_RECORDS_CART_DETAILS
+java RandomDB CUSTOMER $NUM_RECORDS_CUSTOMER
+
+java ConvertTxtToTbl BILL
+java ConvertTxtToTbl CART
+java ConvertTxtToTbl CARTDETAILS
+java ConvertTxtToTbl CUSTOMER
+
+echo "Tables created"
