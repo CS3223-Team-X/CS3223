@@ -57,7 +57,8 @@ More information about this project can be found [here](https://www.comp.nus.edu
 * For simplicity, sorting is taken to use all the specified number of buffers i.e., `[page-count]`
 ### Aggregates
 * Unlike the other implementations, which are modeled as nodes in a query plan tree, the aggregate functions do not fit such a model, and are used only during attribute projection
-
+### DISTINCT 
+* Distinct uses the sort class to sort to ensure input is in sorted order. It will then remove duplicates by comparing 2 adjacent tuples from top until the end of line.
 ## Fixes
 * Disallow further program execution when the value of `[page-size]` in the running of the main program `QueryMain` is less than the cumulative size of all specified tuple sizes
 
