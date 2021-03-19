@@ -1,9 +1,10 @@
 package qp.operators;
 
-import qp.optimizer.BufferManager;
 import qp.utils.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +25,7 @@ public class Sort extends Operator {
     private final int numPages;
     private List<Batch> inputPages;
 
+    private String finalSortedRun;
     private ObjectInputStream sortedRecordsInputStream;
     private boolean isEndOfStream;
 
@@ -93,7 +95,8 @@ public class Sort extends Operator {
 
         }
         try {
-            sortedRecordsInputStream = new ObjectInputStream(new FileInputStream(sortedRuns.get(0)));
+            finalSortedRun = sortedRuns.get(0);
+            sortedRecordsInputStream = new ObjectInputStream(new FileInputStream(finalSortedRun));
             isEndOfStream = false;
         } catch (IOException e) {
             e.printStackTrace();
@@ -151,6 +154,12 @@ public class Sort extends Operator {
                 readIntoInputBuffer(in);
             } while (!inputPages.isEmpty());
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Files.delete(Paths.get(UNSORTED_FILE));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -275,6 +284,8 @@ public class Sort extends Operator {
             closeConnections(inputStreams);
         } while (startIndex < endIndex && endIndex <= sortedRuns.size());
 
+        deletePreviousSortedRuns(sortedRuns);
+
         return newSortedRuns;
     }
 
@@ -297,6 +308,17 @@ public class Sort extends Operator {
                 inputStream.close();
             } catch (IOException e) {
                 // should not reach here
+            }
+        }
+    }
+
+    private void deletePreviousSortedRuns(List<String> previousSortedRuns) {
+        for (String previousSortedRun : previousSortedRuns) {
+            try {
+                Files.delete(Paths.get(previousSortedRun));
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Unable to delete a previous sorted run");
             }
         }
     }
@@ -355,6 +377,7 @@ public class Sort extends Operator {
     public boolean close() {
         try {
             sortedRecordsInputStream.close();
+            Files.delete(Paths.get(finalSortedRun));
             return true;
         } catch (IOException e) {
             e.printStackTrace();
