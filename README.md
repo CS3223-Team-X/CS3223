@@ -9,7 +9,7 @@ Our team consists of the following students from National University of Singapor
 * [KANG WANGKAI](https://github.com/Kangwkk)
 * [JOVAN HUANG TIAN CHUN](https://github.com/jovanhuang)
 
-The project aimed to let us gain a feel for how query processing works through development and enhancement of a simple Select-Project-Join (SPJ) query engine.  
+The project aimed to let us gain a feel for how query processing works through development and enhancement of a simple Select-Project-Join query engine.  
 
 We saw how different query execution trees have different performance results, which provides motivation for query optimization.  
 
