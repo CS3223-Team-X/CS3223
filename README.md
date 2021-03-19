@@ -39,11 +39,10 @@ More information about this project can be found [here](https://www.comp.nus.edu
 
 ## Chosen Implementations
 1. Block Nested Loop Join (see: [BlockNestedJoin.java](src/qp/operators/joins/BlockNestedJoin.java))
-2. External Sort-Merge algorithm (see: [Sort.java](src/qp/operators/Sort.java))
-3. Sort Merge Join (see: [SortMergeJoin.java](src/qp/operators/joins/SortMergeJoin.java))
-4. DISTINCT (see: [Distinct.java](src/qp/operators/Distinct.java))
-5. ORDERBY (see: [OrderBy.java](src/qp/operators/OrderBy.java))
-6. Aggregate functions: MIN, MAX, AVG, COUNT (see: [aggregates](src/qp/operators/projects/aggregates))
+2. Sort-Merge Join (see: [SortMergeJoin.java](src/qp/operators/joins/SortMergeJoin.java))
+3. DISTINCT (see: [Distinct.java](src/qp/operators/Distinct.java))
+4. ORDERBY (see: [OrderBy.java](src/qp/operators/OrderBy.java))
+5. Aggregate functions: MIN, MAX, COUNT, AVG (see: [aggregates](src/qp/operators/projects/aggregates))
 
 ## Additional Implementations
 1. SUM (an aggregate function)
@@ -54,7 +53,7 @@ More information about this project can be found [here](https://www.comp.nus.edu
 * Both Block Nested Loop Join and Page Nested Loop Join (now separate from the stock version) utilise Nested Loop Join with different input buffer sizes;
   default of 1 for Page Nested Join, and a variable number for Block Nested Join
 ### Sorting
-* External Sort-Merge is utilised by a few implementations: Sort Merge Join, DISTINCT and ORDERBY
+* The External Sort-Merge algorithm is implemented and utilised by a few implementations: Sort-Merge Join, DISTINCT and ORDERBY
 ### Aggregates
 * Unlike the other implementations, which are modeled as nodes in a query plan tree, the aggregate functions do not fit such a model, and are used only during attribute projection
 
