@@ -130,7 +130,7 @@ public class Distinct extends Operator {
      * This method compares tuples to check if they are duplicates.
      * @param firstTuple for comparison
      * @param secondTuple for comparisons
-     * @return boolean
+     * @return True if they are the same, false otherwise
      */
     private boolean checkIfTuplesAreEqual(Tuple firstTuple, Tuple secondTuple) {
         for (int indexNumber : attributeIndex) {
@@ -143,7 +143,7 @@ public class Distinct extends Operator {
     }
 
     /**
-     * Method will check for return value of sorted.close()
+     * Method is a wrapper for the closing of this and the next operator down the query plan tree
      * @return boolean true or false
      */
     @Override
