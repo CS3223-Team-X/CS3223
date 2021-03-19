@@ -7,6 +7,7 @@ import qp.utils.Tuple;
 import qp.operators.Buffer;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +83,7 @@ public class SortMergeJoin extends Join {
         retriveNewLeftPage = true;
 
         if (!left.open() || !right.open()){
-            //System.out.println("SortMergeJoin: Error opening left or right table");
+            System.out.println("SortMergeJoin: Error opening left or right table");
 			return false;
 		}
 
@@ -95,7 +96,7 @@ public class SortMergeJoin extends Join {
         sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
 
         if (!sortedLeft.open() || !sortedRight.open()){
-            //System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
+            System.out.println("SortMergeJoin: Error opening sorted left or sorted right table");
 			return false;
 		}
 
@@ -113,7 +114,7 @@ public class SortMergeJoin extends Join {
                 File file = new File(rfname);
                 ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
                 out.writeObject(rightpage);
-                // out.close();
+                out.close();
                 rightPages.add(file);
                 //System.out.println("SortMergeJoin:" + fileIndex);
                 fileIndex++;
@@ -130,7 +131,7 @@ public class SortMergeJoin extends Join {
         try {
             createRightBuffer(rightBufferSize, 0);
         } catch (IndexOutOfBoundsException e) {
-            //System.out.println("SortMergeJoin: Right pages are all read in");
+            System.out.println("SortMergeJoin: Right pages are all read in");
         }
 
         return true;
@@ -139,7 +140,7 @@ public class SortMergeJoin extends Join {
     @Override
     public Batch next() {
         if (isLeftEndOfStream || isRightEndOfStream) {
-            //System.out.println("SortMergeJoin: return null");
+            System.out.println("SortMergeJoin: return null");
             return null;
         }
 
@@ -154,7 +155,7 @@ public class SortMergeJoin extends Join {
                 leftInputBatch = sortedLeft.next();
                 retriveNewLeftPage = false;
                 if (leftInputBatch == null || leftInputBatch.isEmpty()) {
-                    //System.out.println("SortMergeJoin: sorted left table run out");
+                    System.out.println("SortMergeJoin: sorted left table run out");
                     isLeftEndOfStream = true;
                     break;
                 }
@@ -169,7 +170,7 @@ public class SortMergeJoin extends Join {
             leftTuple = leftInputBatch.getRecord(leftCursor);
             if (leftTuple == null) {
                 isLeftEndOfStream = true;
-                //System.out.println("SortMergeJoin: left table run out");
+                System.out.println("SortMergeJoin: left table run out");
                 break;
             }
 
@@ -189,7 +190,7 @@ public class SortMergeJoin extends Join {
                         leftCursor++;
                     }    
                 }
-                //System.out.println("SortMergeJoin: right table run out");
+                System.out.println("SortMergeJoin: right table run out");
                 continue;
             }
 
@@ -257,7 +258,7 @@ public class SortMergeJoin extends Join {
             try {
                 createRightBuffer(rightBufferSize, batchIndex);
             } catch (IndexOutOfBoundsException e) {
-                //System.out.println("SortMergeJoin: Right pages are all read in");
+                System.out.println("SortMergeJoin: Right pages are all read in");
             }
             //System.out.println("SortMergeJoin: retrive new right buffer");
             rightBatchIndexOffset = batchIndex;
@@ -275,8 +276,10 @@ public class SortMergeJoin extends Join {
             try {
                 ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(rightPages.get(idx)));
                 batch = (Batch) objectInputStream.readObject();
+                objectInputStream.close();
             } catch (IOException | ClassNotFoundException io) {
-                //System.err.println("SortMergeJoin: error in reading the file");
+                System.err.println("SortMergeJoin: error in reading the file " + idx);
+                io.printStackTrace();
                 System.exit(1);
             }
             if (rightInputBuffer.isEmpty() && batch == null) {
@@ -308,7 +311,11 @@ public class SortMergeJoin extends Join {
         sortedLeft.close();
         sortedRight.close();
         for (File file : rightPages) {
-            file.delete();
+            try {
+                Files.deleteIfExists(file.toPath());
+            } catch (IOException e) {
+                continue;
+            }
         }
         return super.close();
     }
