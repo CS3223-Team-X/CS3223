@@ -54,6 +54,7 @@ More information about this project can be found [here](https://www.comp.nus.edu
   default of 1 for Page Nested Join, and a variable number for Block Nested Join
 ### Sorting
 * The External Sort-Merge algorithm is implemented and utilised by a few implementations: Sort-Merge Join, DISTINCT and ORDERBY
+* For simplicity, sorting is taken to use all the specified number of buffers i.e., `[page-count]`
 ### Aggregates
 * Unlike the other implementations, which are modeled as nodes in a query plan tree, the aggregate functions do not fit such a model, and are used only during attribute projection
 
