@@ -2,7 +2,7 @@ package qp.operators.projects;
 
 import qp.operators.Operator;
 import qp.operators.OperatorType;
-import qp.operators.projects.aggregate.*;
+import qp.operators.projects.aggregates.*;
 import qp.utils.*;
 
 import java.util.ArrayList;

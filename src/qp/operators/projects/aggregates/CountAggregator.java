@@ -1,4 +1,4 @@
-package qp.operators.projects.aggregate;
+package qp.operators.projects.aggregates;
 
 public class CountAggregator implements Aggregator<Integer> {
     public static final Integer DONT_CARE = -1;
