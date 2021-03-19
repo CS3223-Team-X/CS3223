@@ -159,7 +159,7 @@ public class Sort extends Operator {
         }
 
         try {
-            Files.delete(Paths.get(UNSORTED_FILE));
+            Files.deleteIfExists(Paths.get(UNSORTED_FILE));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -315,7 +315,7 @@ public class Sort extends Operator {
     private void deletePreviousSortedRuns(List<String> previousSortedRuns) {
         for (String previousSortedRun : previousSortedRuns) {
             try {
-                Files.delete(Paths.get(previousSortedRun));
+                Files.deleteIfExists(Paths.get(previousSortedRun));
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("Unable to delete a previous sorted run");
@@ -377,7 +377,7 @@ public class Sort extends Operator {
     public boolean close() {
         try {
             sortedRecordsInputStream.close();
-            Files.delete(Paths.get(finalSortedRun));
+            Files.deleteIfExists(Paths.get(finalSortedRun));
             return true;
         } catch (IOException e) {
             e.printStackTrace();
