@@ -88,7 +88,7 @@ public class Debug {
                 int exprtype = ((Join) node).getJoinType();
                 switch (exprtype) {
                     case JoinType.PAGE_NESTED:
-                        System.out.print("PageJoin(");
+                        System.out.print("PageNested(");
                         break;
                     case JoinType.BLOCK_NESTED:
                         System.out.print("BlockNested(");
@@ -97,7 +97,7 @@ public class Debug {
                         System.out.print("SortMerge(");
                         break;
                     case JoinType.HASH:
-                        System.out.print("HashJoin(");
+                        System.out.print("Hash(");
                         break;
                 }
                 PPrint(((Join) node).getLeft());
