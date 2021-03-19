@@ -9,6 +9,7 @@ import qp.utils.Tuple;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * A generic Nested Join algorithm with a variable-sized left input buffer.
@@ -191,21 +192,14 @@ class NestedJoin extends Join {
 
     private Buffer addLeftBuffer() {
         Buffer leftBuffer = new Buffer(leftInputBufferSize);
-        while (true) {
+        while (leftBuffer.hasCapacity()) {
             Batch batch = left.next();
-            if (leftBuffer.isEmpty() && batch == null) {
-                leftBuffer = null;
-                break;
-            }
             if (batch == null) {
-                break;
-            }
-            if (!leftBuffer.hasCapacity()) {
                 break;
             }
             leftBuffer.addPage(batch);
         }
-        return leftBuffer;
+        return leftBuffer.isEmpty() ? null : leftBuffer;
     }
 
     /**
