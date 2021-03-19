@@ -240,7 +240,7 @@ public class RandomOptimizer {
             while (joinMeth == prevJoinMeth) {
                 joinMeth = RandomNumberGenerator.randInt(0, numJMeth - 1);
             }
-            node.setJoinType(prevJoinMeth);
+            node.setJoinType(joinMeth);
         }
         return root;
     }

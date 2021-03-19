@@ -36,8 +36,11 @@ public class SortMergeJoin extends Join {
     List<File> rightPages;
 
     // Used for backtracking
+
+    // the index of first right tuple we found a matching in current iteration 
     int currFirstMatchingTupleIndex;
 
+    // the absolute index of the first batch in current right buffer
     int rightBatchIndexOffset;
     
     boolean isPrevTuplesMatch = false;
@@ -57,6 +60,11 @@ public class SortMergeJoin extends Join {
         numBuff = join.getNumBuff();
     }
 
+    /**
+     * During open finds the index of the join attributes
+     * * Materializes the right hand side into a file
+     * * Opens the connections
+     **/
     @Override
     public boolean open() {
         /** select number of tuples per batch **/
@@ -90,8 +98,7 @@ public class SortMergeJoin extends Join {
         isLeftEndOfStream = false;
         isRightEndOfStream = false;
 
-
-
+        // Get sorted tables using external sort algorithm for both left and right tables.
         sortedLeft = new Sort(left, leftAttrs, Sort.Direction.ASC, numBuff);
         sortedRight = new Sort(right, rightAttrs, Sort.Direction.ASC, numBuff);
 
@@ -107,7 +114,8 @@ public class SortMergeJoin extends Join {
         int fileIndex = 0;
         Batch rightpage;
         rightPages = new ArrayList<>();
-
+        
+        // Materialize each page in sorted right table into a file to faciliate possible backtrackings.
         try {
             while ((rightpage = sortedRight.next()) != null) {
                 String rfname = "SMJtemp-" + fileIndex;
@@ -116,14 +124,15 @@ public class SortMergeJoin extends Join {
                 out.writeObject(rightpage);
                 out.close();
                 rightPages.add(file);
-                //System.out.println("SortMergeJoin:" + fileIndex);
+                // System.out.println("SortMergeJoin:" + fileIndex);
                 fileIndex++;
             }
         } catch (IOException io) {
-            //System.out.println("SortMergeJoin: Error writing to temporary file");
+            // System.out.println("SortMergeJoin: Error writing to temporary file");
             return false;
         }
 
+        // allocate B - 2 buffers for right input, 1 for output, 1 for left input.
         rightBufferSize = getNumBuff() - 2;
         rightBatchIndexOffset = 0;
         rightTupleIndex = 0;
@@ -131,16 +140,20 @@ public class SortMergeJoin extends Join {
         try {
             createRightBuffer(rightBufferSize, 0);
         } catch (IndexOutOfBoundsException e) {
-            System.out.println("SortMergeJoin: Right pages are all read in");
+            // System.out.println("SortMergeJoin: Right pages are all read in");
         }
 
         return true;
     }
 
+    /**
+     * from input buffers selects the tuples satisfying join condition
+     * * And returns a page of output tuples
+     **/
     @Override
     public Batch next() {
         if (isLeftEndOfStream || isRightEndOfStream) {
-            System.out.println("SortMergeJoin: return null");
+            // System.out.println("SortMergeJoin: return null");
             return null;
         }
 
@@ -150,12 +163,16 @@ public class SortMergeJoin extends Join {
             if (isLeftEndOfStream || isRightEndOfStream) {
                 break;
             }
+
+            // Fetch a new page to left input buffer from sorted left table if we have already gone through original right input buffer.
             if (leftCursor == CURSOR_START && retriveNewLeftPage) {
                 //System.out.println("SortMergeJoin: retrive new left page");
                 leftInputBatch = sortedLeft.next();
                 retriveNewLeftPage = false;
+
+                // If sorted left table runs out
                 if (leftInputBatch == null || leftInputBatch.isEmpty()) {
-                    System.out.println("SortMergeJoin: sorted left table run out");
+                    // System.out.println("SortMergeJoin: sorted left table run out");
                     isLeftEndOfStream = true;
                     break;
                 }
@@ -166,17 +183,19 @@ public class SortMergeJoin extends Join {
 
             //System.out.println("SortMergeJoin: right tuple index: " + rightTupleIndex);
 
-            // Get one tuple from each table
+            // Get the next tuple from each table
             leftTuple = leftInputBatch.getRecord(leftCursor);
             if (leftTuple == null) {
                 isLeftEndOfStream = true;
-                System.out.println("SortMergeJoin: left table run out");
+                // System.out.println("SortMergeJoin: left table run out");
                 break;
             }
 
             rightTuple = getRightTuple(rightTupleIndex);
             if (rightTuple == null) {
                 isRightEndOfStream = true;
+
+                // if sorted right table runs out but the previous tuples matches - backtracking
                 if (isPrevTuplesMatch) {
                     //System.out.println("SortMergeJoin: go to next left tuple");
                     rightTupleIndex = currFirstMatchingTupleIndex;
@@ -190,14 +209,14 @@ public class SortMergeJoin extends Join {
                         leftCursor++;
                     }    
                 }
-                System.out.println("SortMergeJoin: right table run out");
+                // System.out.println("SortMergeJoin: right table run out");
                 continue;
             }
 
             int compareRes = Tuple.compareTuples(leftTuple, rightTuple, leftIndices.get(0), rightIndices.get(0));
 
+            // advance left cursor
             if (compareRes < 0) {
-                // advance left cursor
                 //System.out.println("SortMergeJoin: advance left cursor");
                 //System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 if (leftCursor == leftInputBatch.size() - 1) {
@@ -208,6 +227,7 @@ public class SortMergeJoin extends Join {
                     leftCursor++;
                 }
 
+                // backtrack the right table
                 if (isPrevTuplesMatch) {
                     rightTupleIndex = currFirstMatchingTupleIndex;
                     //System.out.println("SortMergeJoin: go to next left tuple");
@@ -217,18 +237,19 @@ public class SortMergeJoin extends Join {
                 isPrevTuplesMatch = false;
             } else if (compareRes > 0) {
                 // advance right cursor
-                //System.out.println("SortMergeJoin: advance right cursor");
-                //System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
+                        //System.out.println("SortMergeJoin: advance right cursor");
+                        //System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 rightTupleIndex++;
                 
                 // reset the boolean flag
                 isPrevTuplesMatch = false;
             } else {
-                // found matching tuples
-                //System.out.println("SortMergeJoin: found matching");
-                //System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
+                // found matching tuples and add it to the output buffer
+                        //System.out.println("SortMergeJoin: found matching");
+                        //System.out.println(leftTuple.getData().get(leftIndices.get(0)) + " " + rightTuple.getData().get(rightIndices.get(0)));
                 Tuple outTuple = leftTuple.joinWith(rightTuple);
                 outputBuffer.addRecord(outTuple);
+
                 if (!isPrevTuplesMatch) {
                     currFirstMatchingTupleIndex = rightTupleIndex;
                 }
@@ -236,17 +257,23 @@ public class SortMergeJoin extends Join {
                 rightTupleIndex++;
             }         
         }
-        //System.out.println("SortMergeJoin: write out");
+        // System.out.println("SortMergeJoin: write out");
         return outputBuffer;
     }
 
+    /**
+     * Get the tuple from right table with the specified index
+     */
     private Tuple getRightTuple(int rightTupleIndex) {
+        // Calculate the size of each right batch
         int rightTupleSize = getRight().getSchema().getTupleSize();
         int rightBatchSize = Batch.getPageSize() / rightTupleSize;
 
+        // The index of the batch where the tuple we want exists
         int batchIndex = rightTupleIndex / rightBatchSize;
-        int offset = rightTupleIndex % rightBatchSize;
+        int offset = rightTupleIndex % rightBatchSize; // offset of the tuple within the batch it belongs to
 
+        // the index of the batch inside the current buffer
         int absoluteBatchIndex = batchIndex - rightBatchIndexOffset;
 
         if (absoluteBatchIndex >= 0 && absoluteBatchIndex < rightBufferSize) {
@@ -254,31 +281,41 @@ public class SortMergeJoin extends Join {
             int absoluteTupleIndex = absoluteBatchIndex * rightBatchSize + offset;
             return rightInputBuffer.getRecord(absoluteTupleIndex);
         } else {
-            // not inside buffer (during backtracking)
+            // not inside buffer
             try {
+                // update the right buffer by putting in list of batches starting from the batch we want now. (the batch include the tuple we want)
                 createRightBuffer(rightBufferSize, batchIndex);
             } catch (IndexOutOfBoundsException e) {
-                System.out.println("SortMergeJoin: Right pages are all read in");
+                // System.out.println("SortMergeJoin: Right pages are all read in");
             }
-            //System.out.println("SortMergeJoin: retrive new right buffer");
+            // System.out.println("SortMergeJoin: retrive new right buffer");
             rightBatchIndexOffset = batchIndex;
             int absoluteTupleIndex = offset;
-            //System.out.println("SortMergeJoin: absolute tuple index: " + absoluteTupleIndex);
-            return rightInputBuffer.getRecord(absoluteTupleIndex);
+            // System.out.println("SortMergeJoin: absolute tuple index: " + absoluteTupleIndex);
+            return rightInputBuffer.getRecord(absoluteTupleIndex); // fetch the tuple we want from the updated buffer
         }
     }
 
+    /**
+     * Initialize the right buffer when we first open the operator 
+     * or read in new pages from the right table into buffers when needed.
+     */
     private boolean createRightBuffer(int bufferSize, int startIndex) throws IndexOutOfBoundsException {
+        // create a new buffer object with buffer size allocated
         rightInputBuffer = new Buffer(bufferSize);
+
+        // the index of the first batch we need to put into current buffer
         int idx = startIndex;
+
         while (true) {
             Batch batch = null;
             try {
+                // read in the batch with the specified index from disk
                 ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(rightPages.get(idx)));
                 batch = (Batch) objectInputStream.readObject();
                 objectInputStream.close();
             } catch (IOException | ClassNotFoundException io) {
-                System.err.println("SortMergeJoin: error in reading the file " + idx);
+                // System.err.println("SortMergeJoin: error in reading the file " + idx);
                 io.printStackTrace();
                 System.exit(1);
             }
@@ -287,20 +324,22 @@ public class SortMergeJoin extends Join {
                 break;
             }
             if (batch == null) {
+                // break if the batch fetched is null
                 break;
             }
             if (!rightInputBuffer.hasCapacity()) {
                 break;
             }
+            // add the batch fetched into the right input buffer
             rightInputBuffer.addPage(batch);
-            //System.out.println("SortMergeJoin: add page to right buffer " + idx);
+            // System.out.println("SortMergeJoin: add page to right buffer " + idx);
             idx++;
         }
         return true;
     }
 
     /**
-     * Closes this operator.
+     * Closes this operator and delete files used for materialized right table.
      *
      * @return true if the operator is closed successfully.
      */
