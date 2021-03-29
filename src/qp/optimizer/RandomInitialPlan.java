@@ -61,8 +61,8 @@ class RandomInitialPlan {
         createSelectOperators();
         createJoinOperators();
         createProjectOperators();
-        createOrderByOperators();
         createDistinctOperators();
+        createOrderByOperators();
 
         return queryPlanRoot;
     }
